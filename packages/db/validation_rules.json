@@ -1,0 +1,63 @@
+{
+  "rules": [
+    {
+      "rule_id": "CV001",
+      "severity": "CRITICAL",
+      "name": "Package Count Consistency",
+      "check": "abs(bl.total_packages - pl.total_packages) <= 0",
+      "error_message": "Jumlah koli B/L ({bl}) ≠ Packing List ({pl}). Periksa kembali dokumen.",
+      "affected_fields": ["bl_total_packages", "pl_total_packages"]
+    },
+    {
+      "rule_id": "CV002",
+      "severity": "WARNING",
+      "name": "CIF Value Consistency",
+      "check": "abs((inv.fob + inv.freight + inv.insurance) - inv.cif) / inv.cif <= 0.05",
+      "error_message": "Nilai CIF tidak konsisten (selisih {diff}%). CIF harus = FOB + Freight + Insurance.",
+      "affected_fields": ["cif_value", "fob_value", "freight_cost", "insurance_cost"]
+    },
+    {
+      "rule_id": "CV003",
+      "severity": "CRITICAL",
+      "name": "B/L Date Before Arrival",
+      "check": "bl.bl_date <= bl.arrival_date",
+      "error_message": "Tanggal B/L ({bl_date}) tidak boleh lebih besar dari tanggal tiba ({arrival_date}).",
+      "affected_fields": ["bl_date", "arrival_date"]
+    },
+    {
+      "rule_id": "CV004",
+      "severity": "CRITICAL",
+      "name": "Invoice Currency Match",
+      "check": "inv.currency_code == pl.currency_code",
+      "error_message": "Kode valuta Invoice ({inv}) berbeda dengan Packing List ({pl}).",
+      "affected_fields": ["invoice_currency", "pl_currency"]
+    },
+    {
+      "rule_id": "CV005",
+      "severity": "WARNING",
+      "name": "Gross Weight Tolerance",
+      "check": "abs(bl.gross_weight - sum(pl.items[*].gross_weight)) / bl.gross_weight <= 0.02",
+      "error_message": "Selisih berat kotor B/L vs total Packing List melebihi 2% ({diff}%).",
+      "affected_fields": ["bl_gross_weight", "pl_total_gross_weight"]
+    },
+    {
+      "rule_id": "CV006",
+      "severity": "CRITICAL",
+      "name": "HS Code Format",
+      "check": "regex_match(item.hs_code, '^[0-9]{8}$')",
+      "error_message": "Kode HS '{hs_code}' tidak valid. Harus 8 digit angka (format BTKI).",
+      "affected_fields": ["hs_code"]
+    },
+    {
+      "rule_id": "CV007",
+      "severity": "CRITICAL",
+      "name": "NPWP Checksum",
+      "check": "npwp_checksum_valid(importir.npwp)",
+      "error_message": "NPWP importir '{npwp}' tidak valid (checksum gagal). Periksa kembali nomor NPWP.",
+      "affected_fields": ["npwp_importir"]
+    }
+  ],
+  "version": "1.0.0",
+  "last_updated": "2026-05-01",
+  "description": "Cross-document validation rules for CEISA 4.0 declaration processing. Hot-reloadable — update without restarting the service."
+}

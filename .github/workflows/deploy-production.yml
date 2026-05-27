@@ -1,0 +1,73 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  # Manual approval gate handled by GitHub environments
+
+jobs:
+  deploy-vercel-prod:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vercel Deploy Prod
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel deploy --prod --token $VERCEL_TOKEN
+
+  deploy-railway-prod:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+      - name: Deploy API
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROD_TOKEN }}
+        run: railway up --service api --replicas 2
+      - name: Deploy Worker
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROD_TOKEN }}
+        run: railway up --service worker --replicas 3
+
+  migrate-supabase-prod:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+      - name: DB Push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+        run: supabase db push --project-ref ${{ secrets.PROD_PROJECT_REF }}
+
+  sentry-release:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Sentry release
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: tradeflow
+          SENTRY_PROJECT: tradeflow-api
+
+  posthog-deploy-event:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Track deployment
+        run: |
+          curl -v -L --header "Content-Type: application/json" -d '{
+              "api_key": "${{ secrets.POSTHOG_API_KEY }}",
+              "event": "production_deployment",
+              "properties": {
+                  "distinct_id": "github-actions",
+                  "commit": "${{ github.sha }}"
+              }
+          }' https://app.posthog.com/capture/

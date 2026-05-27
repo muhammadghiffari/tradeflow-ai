@@ -1,0 +1,77 @@
+{
+  "realm": "tradeflow",
+  "displayName": "TradeFlow AI",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "sslRequired": "external",
+  "roles": {
+    "realm": [
+      { "name": "operator",   "description": "Standard customs operator" },
+      { "name": "supervisor", "description": "Team supervisor with review rights" },
+      { "name": "admin",      "description": "Platform administrator" },
+      { "name": "importer",   "description": "Read-only importer portal access" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "tradeflow-web",
+      "name": "TradeFlow Web",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "https://*.tradeflow.ai/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "https://*.tradeflow.ai"
+      ],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "tradeflow-api",
+      "name": "TradeFlow API",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "change-me-in-production",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "defaultRoles": ["operator"],
+  "passwordPolicy": "length(12) and upperCase(1) and digits(1) and specialChars(1)",
+  "accessTokenLifespan": 900,
+  "refreshTokenMaxReuse": 0,
+  "ssoSessionMaxLifespan": 36000,
+  "users": [
+    {
+      "username": "dev-operator",
+      "email": "operator@tradeflow.local",
+      "firstName": "Dev",
+      "lastName": "Operator",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Operator123!", "temporary": false }],
+      "realmRoles": ["operator"]
+    },
+    {
+      "username": "dev-admin",
+      "email": "admin@tradeflow.local",
+      "firstName": "Dev",
+      "lastName": "Admin",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Admin123!", "temporary": false }],
+      "realmRoles": ["admin", "supervisor"]
+    }
+  ]
+}
