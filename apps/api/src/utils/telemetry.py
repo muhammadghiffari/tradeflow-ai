@@ -4,6 +4,7 @@ TradeFlow AI — OpenTelemetry & Prometheus Observability Initialization
 
 import structlog
 from fastapi import FastAPI
+
 try:
     from opentelemetry import metrics, trace
     from opentelemetry.instrumentation.celery import CeleryInstrumentor
@@ -11,7 +12,10 @@ try:
     from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
     from opentelemetry.instrumentation.redis import RedisInstrumentor
     from opentelemetry.sdk.metrics import MeterProvider
-    from opentelemetry.sdk.metrics.export import ConsoleMetricExporter, PeriodicExportingMetricReader
+    from opentelemetry.sdk.metrics.export import (
+        ConsoleMetricExporter,
+        PeriodicExportingMetricReader,
+    )
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter

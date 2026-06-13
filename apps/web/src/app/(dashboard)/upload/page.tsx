@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, FileText, Loader2, Upload, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 type DocSlot = "bill_of_lading" | "packing_list" | "invoice";
@@ -38,12 +38,12 @@ export default function UploadPage() {
     setSlots((prev) => prev.map((s) => (s.slot === slot ? { ...s, file } : s)));
   };
 
-  const handleDrop = useCallback((e: React.DragEvent, slot: DocSlot) => {
+  const handleDrop = (e: React.DragEvent, slot: DocSlot) => {
     e.preventDefault();
     setDragging(null);
     const file = e.dataTransfer.files[0];
     if (file) setFile(slot, file);
-  }, []);
+  };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>, slot: DocSlot) => {
     const file = e.target.files?.[0] ?? null;
@@ -60,9 +60,9 @@ export default function UploadPage() {
     setUploading(true);
     try {
       const form = new FormData();
-      slots.forEach(({ file }) => {
+      for (const { file } of slots) {
         if (file) form.append("files", file);
-      });
+      }
 
       // @ts-ignore — accessToken is added via NextAuth callbacks
       const accessToken = session?.accessToken;
@@ -99,7 +99,9 @@ export default function UploadPage() {
         {slots.map(({ slot, label, required, file }) => (
           <div key={slot} className="space-y-2">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">{label}</label>
+              <label htmlFor={`upload-${slot}`} className="text-sm font-medium">
+                {label}
+              </label>
               {required && <span className="text-xs text-red-400">Required</span>}
               {!required && <span className="text-xs text-muted-foreground">Optional</span>}
             </div>
@@ -115,6 +117,7 @@ export default function UploadPage() {
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setFile(slot, null)}
                   className="text-muted-foreground hover:text-red-400 transition-colors"
                 >
@@ -132,8 +135,15 @@ export default function UploadPage() {
                 onDragLeave={() => setDragging(null)}
                 onDrop={(e) => handleDrop(e, slot)}
                 onClick={() => inputRefs.current[slot]?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    inputRefs.current[slot]?.click();
+                  }
+                }}
               >
                 <input
+                  id={`upload-${slot}`}
                   ref={(el) => {
                     inputRefs.current[slot] = el;
                   }}
@@ -172,6 +182,7 @@ export default function UploadPage() {
 
       {/* Submit */}
       <button
+        type="button"
         onClick={handleSubmit}
         disabled={!allRequired || uploading}
         className={cn(

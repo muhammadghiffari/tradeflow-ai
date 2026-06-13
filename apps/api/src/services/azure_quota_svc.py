@@ -9,7 +9,7 @@ Uses Redis for atomic counter across all workers.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 logger = logging.getLogger("services.azure_quota")
 
@@ -29,7 +29,7 @@ class AzureQuotaService:
         self._redis_url = settings.REDIS_URL
 
     def _get_key(self) -> str:
-        month = datetime.now(timezone.utc).strftime("%Y-%m")
+        month = datetime.now(UTC).strftime("%Y-%m")
         return f"{_REDIS_KEY_PREFIX}:{month}"
 
     async def _get_redis(self):  # type: ignore

@@ -65,6 +65,7 @@ export default function SimulatorControlPage() {
             <div className="grid grid-cols-2 gap-4">
               {SCENARIOS.map((s) => (
                 <button
+                  type="button"
                   key={s.id}
                   onClick={() => setActiveScenario(s.id)}
                   className={cn(
@@ -102,6 +103,7 @@ export default function SimulatorControlPage() {
 
             <div className="mt-6 flex justify-end">
               <button
+                type="button"
                 onClick={applyScenario}
                 disabled={loading}
                 className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors"
@@ -135,7 +137,10 @@ export default function SimulatorControlPage() {
                 <span className="text-foreground">Enabled</span>
               </div>
             </div>
-            <button className="w-full mt-4 flex items-center justify-center gap-2 border border-red-500/30 bg-red-500/10 text-red-400 px-4 py-2 rounded-lg text-sm hover:bg-red-500/20 transition-colors">
+            <button
+              type="button"
+              className="w-full mt-4 flex items-center justify-center gap-2 border border-red-500/30 bg-red-500/10 text-red-400 px-4 py-2 rounded-lg text-sm hover:bg-red-500/20 transition-colors"
+            >
               <Trash2 className="h-4 w-4" />
               Clear In-Memory State
             </button>

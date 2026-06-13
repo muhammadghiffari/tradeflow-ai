@@ -115,9 +115,9 @@ def _average_confidence(confidences: dict) -> float:
 @celery_app.task(bind=True, queue="high", max_retries=3, default_retry_delay=10)
 def preprocess_document(self, batch_id: str) -> None:
     """Entry point: kicks off LangGraph extraction pipeline."""
-    from ..ai.graph import extraction_graph
-
     import asyncio
+
+    from ..ai.graph import extraction_graph
     log.info("Starting extraction pipeline", batch_id=batch_id)
     try:
         config = {"configurable": {"thread_id": batch_id}}

@@ -6,16 +6,18 @@ from __future__ import annotations
 
 import uuid
 from typing import Annotated, Any
+
 try:
     import magic
 except Exception:  # pragma: no cover - optional dependency in lightweight test runs
     magic = None
 import mimetypes
+from pathlib import Path
 
 import structlog
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from pathlib import Path
 from pydantic import BaseModel
+
 try:
     from supabase import AsyncClient
 except Exception:  # pragma: no cover - optional for tests
@@ -81,18 +83,18 @@ async def create_batch(
         for index, file in enumerate(files):
             # Sanitize filename (prevent path traversal)
             filename = Path(file.filename or "file").name
-            
+
             # Read and validate file
             file_bytes = await file.read()
             if len(file_bytes) > MAX_FILE_SIZE:
                 detail = f"{filename} exceeds 50MB limit."
                 raise HTTPException(status_code=400, detail=detail)
-            
+
             # Claimed MIME type validation
             if file.content_type not in ALLOWED_MIME_TYPES:
                 detail = f"Unsupported file type: {file.content_type}"
                 raise HTTPException(status_code=400, detail=detail)
-            
+
             # Magic number validation (real file type check)
             try:
                 if magic is not None:

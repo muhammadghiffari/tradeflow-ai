@@ -107,9 +107,27 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 target-version = "py313"
-line-length = 100
-select = ["E", "F", "I", "N", "W", "UP", "ANN", "S", "B", "C4", "SIM"]
-ignore = ["ANN101", "ANN102"]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "S", "B", "C4", "SIM"]
+ignore = [
+    "E501",   # allow lines longer than line-length
+    "S101",   # allow assert in tests
+    "N802",   # allow uppercase function names (pydantic property KEYCLOAK_JWKS_URL)
+    "N803",   # allow uppercase argument names (ML convention: X)
+    "N806",   # allow uppercase variable names (ML convention: X_train, X_valid)
+    "B008",   # allow function calls in defaults (FastAPI Depends/File/Form pattern)
+    "S108",   # allow /tmp paths (controlled usage in predictor_svc)
+    "S110",   # allow try-except-pass (fire-and-forget status updates)
+    "SIM105", # allow explicit try-except-pass over contextlib.suppress
+    "SIM108", # allow if-else blocks over ternary (readability)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/tasks/*.py" = ["B904"]  # Celery self.retry() cannot use raise-from
+"src/auth/keycloak.py" = ["B904"]
+"src/dependencies.py" = ["B904"]
 
 [tool.mypy]
 python_version = "3.13"

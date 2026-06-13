@@ -5,7 +5,7 @@
  * Displays critical errors, warnings, and missing fields.
  */
 
-import { AlertTriangle, Info, XCircle, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Info, type LucideIcon, XCircle } from "lucide-react";
 import { useMemo } from "react";
 
 export interface ValidationResult {
@@ -63,6 +63,7 @@ export default function ValidationIssuesPanel({
                 <div className="validation-fields">
                   {item.affected_fields.map((f) => (
                     <button
+                      type="button"
                       key={f}
                       className="validation-field-btn"
                       onClick={() => onFieldClick?.(f)}

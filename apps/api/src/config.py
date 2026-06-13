@@ -121,6 +121,7 @@ class Settings(BaseSettings):
     ENABLE_REJECTION_PREDICTION: bool = True
     ENABLE_STATUS_POLLING: bool = True
     ENABLE_MARITIME_DATA_FEATURES: bool = True
+    DETERMINISTIC_E2E: bool = False  # Used in extract.py to swap LLM for deterministic mock
 
     # ── Thresholds ────────────────────────────────────────────────────────────
     OCR_FAST_PATH_QUALITY_THRESHOLD: float = 0.95

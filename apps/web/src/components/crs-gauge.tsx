@@ -44,6 +44,7 @@ export function CRSGauge({ score, grade, size = 160 }: CRSGaugeProps) {
   return (
     <div className="flex flex-col items-center gap-2">
       <svg width={size} height={size} className="crs-gauge overflow-visible">
+        <title>CRS Score Gauge</title>
         {/* Background track */}
         <path
           d={describeArc(arcStart, bgEnd)}

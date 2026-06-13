@@ -1,6 +1,5 @@
 import os
 import subprocess
-import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -31,7 +30,7 @@ def test_keycloak_token_allows_authenticated_api_call():
 
     # Load token from .env.e2e
     token = None
-    with open(envfile, "r", encoding="utf-8") as fh:
+    with open(envfile, encoding="utf-8") as fh:
         for line in fh:
             if line.strip().startswith("E2E_BEARER_TOKEN="):
                 token = line.strip().split("=", 1)[1]

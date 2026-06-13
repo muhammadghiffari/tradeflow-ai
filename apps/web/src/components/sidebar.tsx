@@ -63,6 +63,7 @@ export function Sidebar() {
             <p className="text-[10px] text-muted-foreground truncate">operator@tradeflow.local</p>
           </div>
           <button
+            type="button"
             onClick={() => signOut({ callbackUrl: "/" })}
             className="text-muted-foreground hover:text-foreground transition-colors"
             title="Sign out"

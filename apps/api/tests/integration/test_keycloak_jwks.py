@@ -1,7 +1,7 @@
 import os
+
 import pytest
 
-from src.config import settings
 from src.dependencies import get_keycloak_jwks
 
 

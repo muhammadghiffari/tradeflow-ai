@@ -2,8 +2,9 @@
 TradeFlow AI — Pytest Fixtures and Shared Test Utilities
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
 # Avoid importing the full `supabase` package at import time to keep
@@ -13,8 +14,8 @@ try:
 except Exception:  # pragma: no cover - best-effort import
     _AsyncClient = None
 
-from src.main import app
 from src.dependencies import CurrentUser
+from src.main import app
 
 
 @pytest.fixture

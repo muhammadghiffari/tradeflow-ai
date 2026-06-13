@@ -50,7 +50,6 @@ async def record_outcome_node(state: DeclarationState) -> dict:
     - Trigger model drift check
     - If correction count > threshold, trigger XGBoost retrain
     """
-    from ....api.src.config import settings  # type: ignore
 
     batch_id = state.get("batch_id", "unknown")
     ceisa_status = state.get("ceisa_response", {}).get("status", "UNKNOWN")

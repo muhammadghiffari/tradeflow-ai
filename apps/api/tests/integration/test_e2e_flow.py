@@ -5,7 +5,6 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from src.config import settings
 from src.main import app
 
 
@@ -62,7 +61,7 @@ def test_full_e2e_upload_process_review_submit(monkeypatch):
         try:
             envfile = os.path.abspath(envfile)
             if os.path.exists(envfile):
-                with open(envfile, "r", encoding="utf-8") as f:
+                with open(envfile, encoding="utf-8") as f:
                     for line in f:
                         if line.strip().startswith("E2E_BEARER_TOKEN="):
                             token = line.strip().split("=", 1)[1]

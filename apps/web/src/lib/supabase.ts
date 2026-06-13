@@ -14,7 +14,10 @@ export function createSupabaseClient(accessToken?: string) {
 /**
  * Subscribe to batch status updates
  */
-export function subscribeToBatch(batchId: string, onUpdate: (payload: any) => void) {
+export function subscribeToBatch(
+  batchId: string,
+  onUpdate: (payload: Record<string, unknown>) => void,
+) {
   const supabase = createSupabaseClient(); // real token required in prod, simplified here
   return supabase
     .channel(`batch:${batchId}`)

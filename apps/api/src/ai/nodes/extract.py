@@ -6,6 +6,7 @@ Uses Gemini 2.0 Flash Exp for multimodal extraction.
 
 import asyncio
 import inspect
+
 import structlog
 from pydantic import BaseModel, Field
 
@@ -41,16 +42,16 @@ class CEISAFields(BaseModel):
 async def llm_extraction_node(state: ExtractionGraphState) -> dict:
     """
     Step 2.2: Primary LLM Extraction using Gemini 2.0 Flash Exp.
-    
+
     Args:
         state: ExtractionGraphState with documents list containing doc_id, storage_path, pages
-    
+
     Returns:
         dict with:
             - documents: Updated docs with extracted_data or error flag
             - combined_data: Merged field values across docs
             - steps: Execution trace
-    
+
     Raises:
         Specific exceptions (GoogleAPIError, ValueError) — does NOT catch all exceptions
     """
@@ -138,7 +139,7 @@ async def llm_extraction_node(state: ExtractionGraphState) -> dict:
                 ]
 
             result = await structured_llm.ainvoke(messages)
-            
+
             # Convert Pydantic model to dict
             raw_extracted = result.model_dump(exclude_none=True) if hasattr(result, 'model_dump') else result
             if asyncio.iscoroutine(raw_extracted):
@@ -156,7 +157,7 @@ async def llm_extraction_node(state: ExtractionGraphState) -> dict:
                 "extracted_data": extracted,
                 "ocr_method": settings.GEMINI_MODEL_PRIMARY,
                 "ocr_candidates": candidates,
-                "field_confidences": {field: 0.82 for field in extracted},
+                "field_confidences": dict.fromkeys(extracted, 0.82),
             })
 
             combined_data.update(extracted)

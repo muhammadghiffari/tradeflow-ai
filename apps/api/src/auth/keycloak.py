@@ -8,13 +8,11 @@ Validates JWTs via JWKS endpoint with a 5-minute cache.
 from __future__ import annotations
 
 import time
-from functools import lru_cache
 from typing import Any
 
 import httpx
 from fastapi import HTTPException, status
 from jose import JWTError, jwk, jwt
-from jose.utils import base64url_decode
 
 from ..config import settings
 
