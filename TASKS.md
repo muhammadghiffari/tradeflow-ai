@@ -204,11 +204,11 @@
 ### CEISA Simulator
 - [x] **T-061** Write `apps/simulator/main.py` — FastAPI, 6 scenarios (S01–S06), real CEISA OAuth2 endpoint, real PIB schema validation  
   _SRS §3.16 | FR-087, FR-088, FR-089_
-- [ ] **T-062** Implement INSW lartas simulation in simulator — check HS 28151110 and other DG codes  
+- [x] **T-062** Implement INSW lartas simulation in simulator — check HS 28151110 and other DG codes  
   _SRS §3.16 | FR-090_
-- [ ] **T-063** Write simulator admin endpoints — `GET/PUT /simulator/scenario`, `GET /simulator/logs`, `GET /simulator/stats`, `POST /simulator/reset`  
+- [x] **T-063** Write simulator admin endpoints — `GET/PUT /simulator/scenario`, `GET /simulator/logs`, `GET /simulator/stats`, `POST /simulator/reset`  
   _SRS §3.16 | FR-091_
-- [ ] **T-064** Write `validate_pib_schema()` in simulator — NIB 13-digit, NPWP, HS 8-digit, CIF tolerance, all required fields  
+- [x] **T-064** Write `validate_pib_schema()` in simulator — NIB 13-digit, NPWP, HS 8-digit, CIF tolerance, all required fields  
   _SDD §17 schema validation code_
 
 ### Adaptive Learning
@@ -248,47 +248,47 @@
 ## Week 7: Dashboard + Real-time
 
 ### Real-time Layer
-- [ ] **T-075** Configure Supabase Realtime publications — `batches`, `extracted_fields`, `validation_results`, `ceisa_submissions` tables  
+- [x] **T-075** Configure Supabase Realtime publications — `batches`, `extracted_fields`, `validation_results`, `ceisa_submissions` tables  
   _SDD §3 | FR-074_
-- [ ] **T-076** Write `apps/web/src/hooks/useBatchRealtime.ts` — Supabase Realtime CDC subscription  
+- [x] **T-076** Write `apps/web/src/hooks/useBatchRealtime.ts` — Supabase Realtime CDC subscription  
   _SDD §7.2_
-- [ ] **T-077** Write `apps/web/src/hooks/useAgentStream.ts` — Socket.io client for LangGraph node streaming  
+- [x] **T-077** Write `apps/web/src/hooks/useAgentStream.ts` — Socket.io client for LangGraph node streaming  
   _SDD §7_
-- [ ] **T-078** Configure Socket.io server in `apps/api/src/main.py` — attach to Uvicorn, emit LangGraph progress events  
+- [x] **T-078** Configure Socket.io server in `apps/api/src/main.py` — attach to Uvicorn, emit LangGraph progress events  
   _PRD §4 Decision 5_
 
 ### Review UI Components
-- [ ] **T-079** Write `DocumentViewer.tsx` — PDF.js 4.x renderer + canvas overlay for bboxes from Agent B  
+- [x] **T-079** Write `DocumentViewer.tsx` — PDF.js 4.x renderer + canvas overlay for bboxes from Agent B  
   _SRS §3.10 | FR-052, FR-054_
-- [ ] **T-080** Write `FieldRow.tsx` — confidence badge (HIGH/MEDIUM/LOW/DISAGREEMENT), inline edit, original gray, agent disagreement tooltip  
+- [x] **T-080** Write `FieldRow.tsx` — confidence badge (HIGH/MEDIUM/LOW/DISAGREEMENT), inline edit, original gray, agent disagreement tooltip  
   _SRS §3.10 | FR-053, FR-057_
-- [ ] **T-081** Write `LineItemsGrid.tsx` — TanStack Table v8, inline edit, bulk HS apply  
+- [x] **T-081** Write `LineItemsGrid.tsx` — TanStack Table v8, inline edit, bulk HS apply  
   _SRS §3.10 | FR-055_
-- [ ] **T-082** Write `CRSWidget.tsx` — live gauge via Supabase Realtime, letter grade, component breakdown  
+- [x] **T-082** Write `CRSWidget.tsx` — live gauge via Supabase Realtime, letter grade, component breakdown  
   _SRS §3.9 | FR-050_
-- [ ] **T-083** Write `RejectionRiskWidget.tsx` — probability bar, risk level badge, top-3 feature breakdown  
+- [x] **T-083** Write `RejectionRiskWidget.tsx` — probability bar, risk level badge, top-3 feature breakdown  
   _SRS §3.8 | FR-046_
-- [ ] **T-084** Write `VesselValidationWidget.tsx` — AIS status, lineup confirmation, issue list with severity badges  
+- [x] **T-084** Write `VesselValidationWidget.tsx` — AIS status, lineup confirmation, issue list with severity badges  
   _SRS §9.2 | FR-031_
-- [ ] **T-085** Write `BlockchainStatusWidget.tsx` — tx hash, Polygonscan link, IPFS CID, certificate download  
+- [x] **T-085** Write `BlockchainStatusWidget.tsx` — tx hash, Polygonscan link, IPFS CID, certificate download  
   _SRS §3.14 | FR-081_
-- [ ] **T-086** Write `INSWStatusWidget.tsx` — lartas status, issue list, permit requirement alert  
+- [x] **T-086** Write `INSWStatusWidget.tsx` — lartas status, issue list, permit requirement alert  
   _SRS §3.12 | FR-064_
-- [ ] **T-087** Write `PreSubmitChecklist.tsx` — modal, 6 checks from FR-056, blocks submit if any fail  
+- [x] **T-087** Write `PreSubmitChecklist.tsx` — modal, 6 checks from FR-056, blocks submit if any fail  
   _SRS §3.10 | FR-056_
-- [ ] **T-088** Write `AICopilotPanel.tsx` — Socket.io streamed response, Enterprise full / SME basic  
+- [x] **T-088** Write `AICopilotPanel.tsx` — Socket.io streamed response, Enterprise full / SME basic  
   _SRS §3.11 | FR-059, FR-060, FR-061_
 
 ### SME Wizard
-- [ ] **T-089** Write SME Upload Wizard — 3-step (B/L → PL → Invoice), mobile camera input, simplified field labels  
+- [x] **T-089** Write SME Upload Wizard — 3-step (B/L → PL → Invoice), mobile camera input, simplified field labels  
   _SRS §3.10 | FR-030, FR-031_
-- [ ] **T-090** Write `HSCodeWizard.tsx` — inline per line item, top-3 with duty/VAT/lartas  
+- [x] **T-090** Write `HSCodeWizard.tsx` — inline per line item, top-3 with duty/VAT/lartas  
   _SRS §3.10 | FR-032_
 
 ### Analytics + Simulator Control
-- [ ] **T-091** Write `/analytics` page — Recharts dashboard, CRS trend, rejection rate by carrier/HS chapter, operator correction heatmap  
+- [x] **T-091** Write `/analytics` page — Recharts dashboard, CRS trend, rejection rate by carrier/HS chapter, operator correction heatmap  
   _PRD §18_
-- [ ] **T-092** Write `/simulator` admin page — live scenario switcher (S01–S06), submission log table, stats card  
+- [x] **T-092** Write `/simulator` admin page — live scenario switcher (S01–S06), submission log table, stats card  
   _SRS §3.16 | FR-091_
 
 ---
@@ -304,15 +304,15 @@
   _SRS §23 | NFR-007_
 
 ### Observability
-- [ ] **T-096** Instrument Prometheus metrics — `tradeflow_ocr_duration_seconds`, `tradeflow_ocr_agent_agreement_rate`, `tradeflow_azure_di_pages_used_month`, all counters from PRD §23  
+- [x] **T-096** Instrument Prometheus metrics — `tradeflow_ocr_duration_seconds`, `tradeflow_ocr_agent_agreement_rate`, `tradeflow_azure_di_pages_used_month`, all counters from PRD §23  
   _PRD §23_
-- [ ] **T-097** Wire Sentry SDK to FastAPI + Next.js — `sentry_sdk.init()` in lifespan, source maps in Next config  
+- [x] **T-097** Wire Sentry SDK to FastAPI + Next.js — `sentry_sdk.init()` in lifespan, source maps in Next config  
   _PRD §9_
 
 ### Tests
-- [ ] **T-098** Write unit tests — all 127 SRS FRs must have at least one test; naming: `test_FR{N}_{description}`  
+- [x] **T-098** Write unit tests — all 127 SRS FRs must have at least one test; naming: `test_FR{N}_{description}`  
   _SRS §11 | All FRs_
-- [ ] **T-099** Write E2E Playwright tests — upload → review → submit flow (S01), INSW rejection flow (S06)  
+- [x] **T-099** Write E2E Playwright tests — upload → review → submit flow (S01), INSW rejection flow (S06)  
   _PRD §25 Week 8_
 
 ### Deployment
