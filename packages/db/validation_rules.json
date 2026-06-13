@@ -1,63 +1,145 @@
 {
   "rules": [
     {
-      "rule_id": "CV001",
-      "severity": "CRITICAL",
-      "name": "Package Count Consistency",
-      "check": "abs(bl.total_packages - pl.total_packages) <= 0",
-      "error_message": "Jumlah koli B/L ({bl}) ≠ Packing List ({pl}). Periksa kembali dokumen.",
-      "affected_fields": ["bl_total_packages", "pl_total_packages"]
+      "id": "CV001",
+      "name": "HS Code Validity",
+      "description": "Each HS code must be exactly 8 digits and exist in BTKI",
+      "field": "hs_code",
+      "type": "regex_and_lookup",
+      "regex": "^\\d{8}$",
+      "lookup_table": "btki_hs_codes",
+      "severity": "ERROR"
     },
     {
-      "rule_id": "CV002",
-      "severity": "WARNING",
-      "name": "CIF Value Consistency",
-      "check": "abs((inv.fob + inv.freight + inv.insurance) - inv.cif) / inv.cif <= 0.05",
-      "error_message": "Nilai CIF tidak konsisten (selisih {diff}%). CIF harus = FOB + Freight + Insurance.",
-      "affected_fields": ["cif_value", "fob_value", "freight_cost", "insurance_cost"]
+      "id": "CV002",
+      "name": "CIF Consistency",
+      "description": "CIF value must equal FOB + Freight + Insurance within 0.5% tolerance",
+      "type": "cross_document",
+      "tolerance_pct": 0.5,
+      "severity": "ERROR"
     },
     {
-      "rule_id": "CV003",
-      "severity": "CRITICAL",
-      "name": "B/L Date Before Arrival",
-      "check": "bl.bl_date <= bl.arrival_date",
-      "error_message": "Tanggal B/L ({bl_date}) tidak boleh lebih besar dari tanggal tiba ({arrival_date}).",
-      "affected_fields": ["bl_date", "arrival_date"]
+      "id": "CV003",
+      "name": "NIB Format",
+      "description": "NIB (Nomor Induk Berusaha) must be exactly 13 digits",
+      "field": "nib",
+      "type": "regex",
+      "regex": "^\\d{13}$",
+      "severity": "ERROR"
     },
     {
-      "rule_id": "CV004",
-      "severity": "CRITICAL",
-      "name": "Invoice Currency Match",
-      "check": "inv.currency_code == pl.currency_code",
-      "error_message": "Kode valuta Invoice ({inv}) berbeda dengan Packing List ({pl}).",
-      "affected_fields": ["invoice_currency", "pl_currency"]
+      "id": "CV004",
+      "name": "NPWP Format",
+      "description": "NPWP (Nomor Pokok Wajib Pajak) must be exactly 15 digits",
+      "field": "npwp",
+      "type": "regex",
+      "regex": "^\\d{15}$",
+      "severity": "ERROR"
     },
     {
-      "rule_id": "CV005",
-      "severity": "WARNING",
-      "name": "Gross Weight Tolerance",
-      "check": "abs(bl.gross_weight - sum(pl.items[*].gross_weight)) / bl.gross_weight <= 0.02",
-      "error_message": "Selisih berat kotor B/L vs total Packing List melebihi 2% ({diff}%).",
-      "affected_fields": ["bl_gross_weight", "pl_total_gross_weight"]
+      "id": "CV005",
+      "name": "Container ISO 6346",
+      "description": "Container numbers must match ISO 6346 format: 4 alpha + 7 digits",
+      "field": "container_number",
+      "type": "regex",
+      "regex": "^[A-Z]{4}\\d{7}$",
+      "severity": "WARNING"
     },
     {
-      "rule_id": "CV006",
-      "severity": "CRITICAL",
-      "name": "HS Code Format",
-      "check": "regex_match(item.hs_code, '^[0-9]{8}$')",
-      "error_message": "Kode HS '{hs_code}' tidak valid. Harus 8 digit angka (format BTKI).",
-      "affected_fields": ["hs_code"]
+      "id": "CV006",
+      "name": "BL Number Consistency",
+      "description": "B/L number must match across all uploaded documents",
+      "type": "cross_document_match",
+      "fields": ["nomorBl"],
+      "severity": "ERROR"
     },
     {
-      "rule_id": "CV007",
-      "severity": "CRITICAL",
-      "name": "NPWP Checksum",
-      "check": "npwp_checksum_valid(importir.npwp)",
-      "error_message": "NPWP importir '{npwp}' tidak valid (checksum gagal). Periksa kembali nomor NPWP.",
-      "affected_fields": ["npwp_importir"]
+      "id": "CV007",
+      "name": "Weight Consistency",
+      "description": "Gross weight across documents must match within 1% tolerance",
+      "type": "cross_document",
+      "fields": ["beratKotor"],
+      "tolerance_pct": 1.0,
+      "severity": "WARNING"
+    },
+    {
+      "id": "CV008",
+      "name": "Package Count Match",
+      "description": "Package count must match across B/L and Packing List",
+      "type": "cross_document_match",
+      "fields": ["jumlahKemasan"],
+      "severity": "WARNING"
+    },
+    {
+      "id": "CV009",
+      "name": "Vessel Name/Voyage Match",
+      "description": "Vessel name and voyage number must match across all documents",
+      "type": "cross_document_match",
+      "fields": ["namaKapal", "voyageNumber"],
+      "severity": "ERROR"
+    },
+    {
+      "id": "CV010",
+      "name": "Date Sequence",
+      "description": "B/L date must be <= ETD <= ETA at destination",
+      "type": "date_sequence",
+      "fields": ["tglBl", "etd", "eta"],
+      "severity": "WARNING"
+    },
+    {
+      "id": "CV011",
+      "name": "UN/LOCODE Validity",
+      "description": "Port loading and discharge codes must be valid UN/LOCODEs",
+      "type": "lookup",
+      "fields": ["kodePelabuhanMuat", "kodePelabuhanBongkar"],
+      "lookup_table": "un_locodes",
+      "severity": "ERROR"
     }
   ],
-  "version": "1.0.0",
-  "last_updated": "2026-05-01",
-  "description": "Cross-document validation rules for CEISA 4.0 declaration processing. Hot-reloadable — update without restarting the service."
+  "xgboost_fallback_rules": {
+    "description": "Rule-based rejection risk when XGBoost model is unavailable (< 500 labeled samples)",
+    "base_risk": 0.1,
+    "rules": [
+      {
+        "feature": "hs_code_confidence",
+        "condition": "lt",
+        "threshold": 0.7,
+        "risk_contribution": 0.3
+      },
+      {
+        "feature": "agent_disagreement_count",
+        "condition": "gte",
+        "threshold": 3,
+        "risk_contribution": 0.2
+      },
+      {
+        "feature": "crs_score",
+        "condition": "lt",
+        "threshold": 55,
+        "risk_contribution": 0.5
+      },
+      {
+        "feature": "critical_validation_failures",
+        "condition": "gte",
+        "threshold": 1,
+        "risk_contribution": 0.35
+      },
+      {
+        "feature": "vessel_validation_critical",
+        "condition": "eq",
+        "threshold": 1,
+        "risk_contribution": 0.25
+      },
+      {
+        "feature": "missing_required_fields_count",
+        "condition": "gte",
+        "threshold": 3,
+        "risk_contribution": 0.2
+      }
+    ],
+    "max_risk": 0.95
+  },
+  "version": "2.0.0",
+  "last_updated": "2026-06-13",
+  "description": "Cross-document validation rules CV001-CV011 for CEISA 4.0 declaration processing. Hot-reloadable — update without restarting the service (send SIGHUP to worker). Never hardcode these rules in Python."
 }

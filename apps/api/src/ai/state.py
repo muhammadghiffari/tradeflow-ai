@@ -2,8 +2,9 @@
 TradeFlow AI — LangGraph State Definition
 """
 
-from typing import Annotated, TypedDict
 from operator import add
+from typing import Annotated, TypedDict
+
 
 class DocumentState(TypedDict):
     doc_id: str
@@ -14,6 +15,9 @@ class DocumentState(TypedDict):
     quality_score: float
     ocr_method: str | None
     error: str | None
+    ocr_candidates: dict
+    ocr_conflicts: list[dict]
+    field_confidences: dict[str, float]
 
 class ExtractionGraphState(TypedDict):
     """The state of the document extraction LangGraph."""
@@ -24,5 +28,7 @@ class ExtractionGraphState(TypedDict):
     validation_results: list[dict]
     needs_human_review: bool
     risk_level: str
+    ocr_conflicts: list[dict]
+    field_confidences: dict[str, float]
     # Keep track of which node executed
     steps: Annotated[list[str], add]

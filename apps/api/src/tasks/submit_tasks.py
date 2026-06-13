@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+
 import structlog
 from celery import Task
 

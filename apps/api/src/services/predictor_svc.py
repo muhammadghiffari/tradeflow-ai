@@ -12,15 +12,25 @@ The model artifact is stored in MinIO at:
 from __future__ import annotations
 
 import io
-import os
 from pathlib import Path
+from typing import Any
 
-import joblib
-import numpy as np
 import structlog
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-import xgboost as xgb
+
+try:
+    import numpy as np
+except Exception:  # pragma: no cover - optional in lightweight test environments
+    np = None
+
+try:
+    import joblib
+except Exception:  # pragma: no cover - optional in lightweight test environments
+    joblib = None
+
+try:
+    from sklearn.pipeline import Pipeline
+except Exception:  # pragma: no cover - optional in lightweight test environments
+    Pipeline = object
 
 from ..config import settings
 
@@ -48,9 +58,15 @@ class RejectionPredictor:
     def __init__(self) -> None:
         self._pipeline: Pipeline | None = None
         self._model_version: str = "0"
+        self._auc: float | None = None
+        self._load_attempted = False
 
     def _load_from_minio(self) -> bool:
         """Download latest model from MinIO."""
+        if joblib is None:
+            log.warning("joblib is not installed; using heuristic predictor fallback")
+            return False
+
         try:
             import boto3
             from botocore.client import Config
@@ -92,8 +108,12 @@ class RejectionPredictor:
 
     def load(self) -> None:
         """Load model — try MinIO, fallback to local cache."""
+        self._load_attempted = True
         if not self._load_from_minio():
             if MODEL_LOCAL_PATH.exists():
+                if joblib is None:
+                    log.warning("Local model exists but joblib is unavailable")
+                    return
                 self._pipeline = joblib.load(MODEL_LOCAL_PATH)
                 log.info("Model loaded from local cache")
             else:
@@ -104,9 +124,15 @@ class RejectionPredictor:
         Returns probability of rejection (0.0–1.0).
         If model is not loaded, falls back to heuristic.
         """
-        feature_vec = np.array(
-            [[features.get(f, 0.0) for f in FEATURE_NAMES]], dtype=np.float32
-        )
+        if np is not None:
+            feature_vec = np.array(
+                [[features.get(f, 0.0) for f in FEATURE_NAMES]], dtype=np.float32
+            )
+        else:
+            feature_vec = [[features.get(f, 0.0) for f in FEATURE_NAMES]]
+
+        if self._pipeline is None and not self._load_attempted:
+            self.load()
 
         if self._pipeline is not None:
             try:
@@ -122,14 +148,30 @@ class RejectionPredictor:
 
     def train_and_upload(
         self,
-        X: np.ndarray,
-        y: np.ndarray,
+        X: Any,
+        y: Any,
         version: str,
-    ) -> None:
+        *,
+        current_auc: float | None = None,
+    ) -> dict:
         """
         Train a new XGBoost model and upload to MinIO.
         Called by the Celery `retrain_predictor` task when ≥100 new samples.
         """
+        if np is None:
+            raise RuntimeError("numpy is required to train the XGBoost model")
+        if joblib is None:
+            raise RuntimeError("joblib is required to train and persist the XGBoost model")
+
+        import xgboost as xgb
+        from sklearn.metrics import roc_auc_score
+        from sklearn.model_selection import train_test_split
+        from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import StandardScaler
+
+        if len(set(y.tolist())) < 2:
+            raise ValueError("Cannot train rejection predictor with only one outcome class")
+
         pipeline = Pipeline([
             ("scaler", StandardScaler()),
             ("xgb", xgb.XGBClassifier(
@@ -143,7 +185,26 @@ class RejectionPredictor:
                 random_state=42,
             )),
         ])
-        pipeline.fit(X, y)
+        stratify = y if min(np.bincount(y.astype(int))) >= 2 else None
+        X_train, X_valid, y_train, y_valid = train_test_split(
+            X,
+            y,
+            test_size=0.2,
+            random_state=42,
+            stratify=stratify,
+        )
+        pipeline.fit(X_train, y_train)
+        valid_prob = pipeline.predict_proba(X_valid)[:, 1]
+        auc = float(roc_auc_score(y_valid, valid_prob)) if len(set(y_valid.tolist())) > 1 else 0.5
+
+        baseline_auc = current_auc if current_auc is not None else self._auc
+        if baseline_auc is not None and auc < (baseline_auc - settings.RETRAIN_MAX_AUC_DROP):
+            log.warning(
+                "Rejected candidate model because AUC regressed",
+                candidate_auc=auc,
+                baseline_auc=baseline_auc,
+            )
+            return {"promoted": False, "auc": auc, "baseline_auc": baseline_auc}
 
         buf = io.BytesIO()
         joblib.dump(pipeline, buf)
@@ -167,6 +228,8 @@ class RejectionPredictor:
             log.info("New model uploaded to MinIO", version=version, key=key)
             self._pipeline = pipeline
             self._model_version = version
+            self._auc = auc
+            return {"promoted": True, "auc": auc, "version": version, "key": key}
         except Exception as exc:
             log.error("Failed to upload model to MinIO", error=str(exc))
             raise

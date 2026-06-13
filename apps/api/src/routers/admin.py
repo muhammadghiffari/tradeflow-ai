@@ -3,8 +3,9 @@ TradeFlow AI — Admin Router
 """
 
 from typing import Annotated, Any
-from fastapi import APIRouter, Depends
+
 import structlog
+from fastapi import APIRouter, Depends
 
 from ..dependencies import CurrentUser, require_admin
 

@@ -1,0 +1,59 @@
+name: Full Stack E2E Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # opt-in before June 16 2026 forced cutover
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"  # paddlepaddle only has cp313 wheels
+
+      - name: Install backend dependencies
+        run: uv pip install -e "apps/api[dev]"
+
+      - name: Start full stack services
+        run: |
+          docker compose -f docker-compose.yml up -d redis minio chromadb supabase-db supabase-storage supabase-rest supabase-kong keycloak
+
+      - name: Wait for services
+        run: |
+          set -e
+          for i in $(seq 1 60); do
+            echo "Waiting for service readiness attempt $i..."
+            if curl -fsS http://localhost:8080/auth/realms/tradeflow >/dev/null 2>&1 \
+              && curl -fsS http://localhost:8000/api/v1/heartbeat >/dev/null 2>&1 \
+              && curl -fsS http://localhost:9000/minio/health/ready >/dev/null 2>&1 \
+              && docker compose -f docker-compose.yml exec -T supabase-db pg_isready -U postgres >/dev/null 2>&1; then
+              echo "All services are ready"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Services failed to become ready in time."
+          docker compose -f docker-compose.yml ps
+          exit 1
+
+      - name: Provision Keycloak E2E client/user
+        run: python scripts/keycloak/provision_e2e.py
+
+      - name: Run Full E2E tests
+        env:
+          RUN_KEYCLOAK: "1"
+          RUN_FULL_E2E: "1"
+          DETERMINISTIC_E2E: "1"
+        run: uv run pytest -m integration tests/integration -q
+
+      - name: Teardown integration services
+        if: always()
+        run: docker compose -f docker-compose.yml down --remove-orphans

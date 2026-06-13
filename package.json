@@ -9,6 +9,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:e2e:web": "pnpm --dir apps/web exec playwright test",
     "format": "biome format --write .",
     "check": "biome check --write ."
   },

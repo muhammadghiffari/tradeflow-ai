@@ -15,6 +15,8 @@ PRD §13 — CRS = weighted average across 5 pillars:
 from __future__ import annotations
 
 import structlog
+
+from ...services.predictor_svc import rejection_predictor
 from ..state import ExtractionGraphState
 
 log = structlog.get_logger()
@@ -73,12 +75,22 @@ def _score_to_risk(score: float) -> str:
     return "CRITICAL"
 
 
+def _probability_to_risk(probability: float) -> str:
+    if probability < 0.15:
+        return "LOW"
+    if probability < 0.35:
+        return "MEDIUM"
+    if probability < 0.60:
+        return "HIGH"
+    return "CRITICAL"
+
+
 async def risk_assessment_node(state: ExtractionGraphState) -> dict:
     """
     Compute CRS (0-100) and rejection probability (0-1).
 
-    XGBoost inference is stubbed here — the real model is loaded
-    from MinIO in packages/ml/predictor.py.
+    XGBoost inference uses the shared predictor service, with heuristic
+    fallback when no trained model is available yet.
     """
     log.info("Running risk_assessment_node", batch_id=state["batch_id"])
 
@@ -103,14 +115,26 @@ async def risk_assessment_node(state: ExtractionGraphState) -> dict:
     )
     crs_score = round(crs_raw * 100, 2)
     crs_grade = _crs_to_grade(crs_score)
-    risk_level = _score_to_risk(crs_score)
 
-    # ── XGBoost rejection probability (stub) ──────────────────────
-    # In full impl: load model from MinIO and run inference on features
-    rejection_prob = round(1.0 - crs_raw, 4)
+    features = {
+        "doc_quality_score": p_quality,
+        "completeness_score": p_completeness,
+        "consistency_score": p_consistency,
+        "historical_rate": p_historical,
+        "hs_confidence": p_hs_conf,
+        "cif_value_usd": float(combined_data.get("cif_value") or 0.0),
+        "package_count": float(combined_data.get("total_packages") or 0.0),
+        "gross_weight_kg": float(combined_data.get("gross_weight") or 0.0),
+    }
+    rejection_prob = round(rejection_predictor.predict_proba(features), 4)
+    risk_level = _probability_to_risk(rejection_prob)
 
     # PRD §13 Invariant: CRS < 70 → must NOT auto-submit
-    needs_human_review = state.get("needs_human_review", False) or crs_score < 70.0
+    needs_human_review = (
+        state.get("needs_human_review", False)
+        or crs_score < 70.0
+        or rejection_prob >= 0.35
+    )
 
     log.info(
         "CRS computed",
@@ -131,4 +155,5 @@ async def risk_assessment_node(state: ExtractionGraphState) -> dict:
         "_crs_score": crs_score,
         "_crs_grade": crs_grade,
         "_rejection_prob": rejection_prob,
+        "_risk_features": features,
     }

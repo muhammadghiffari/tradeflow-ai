@@ -1,8 +1,8 @@
 "use client";
 
-import { BarChart3, TrendingUp, TrendingDown, Users, Activity, FileCheck2, AlertTriangle, ShieldCheck } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { CRSGauge } from "@/components/crs-gauge";
+import { cn } from "@/lib/utils";
+import { Activity, BarChart3, FileCheck2, ShieldCheck, Users } from "lucide-react";
 
 const STATS = [
   { label: "Total Declarations", val: "15,284", delta: "+12.5%", trend: "up", icon: FileCheck2 },
@@ -16,7 +16,9 @@ export default function AnalyticsDashboard() {
     <div className="p-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Platform Analytics</h1>
-        <p className="text-sm text-muted-foreground mt-1">Admin overview of TradeFlow AI performance.</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Admin overview of TradeFlow AI performance.
+        </p>
       </div>
 
       {/* Top Stats */}
@@ -27,9 +29,14 @@ export default function AnalyticsDashboard() {
               <div className="p-2 bg-primary/10 rounded-lg">
                 <s.icon className="h-4 w-4 text-primary" />
               </div>
-              <span className={cn("text-xs font-semibold px-2 py-1 rounded-md", 
-                s.trend === "up" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-              )}>
+              <span
+                className={cn(
+                  "text-xs font-semibold px-2 py-1 rounded-md",
+                  s.trend === "up"
+                    ? "bg-green-500/10 text-green-400"
+                    : "bg-red-500/10 text-red-400",
+                )}
+              >
                 {s.delta}
               </span>
             </div>
@@ -49,11 +56,15 @@ export default function AnalyticsDashboard() {
             </h2>
             <span className="text-xs px-2 py-1 bg-white/10 rounded-md">Last 30 Days</span>
           </div>
-          
+
           <div className="h-64 flex items-end justify-between gap-2 border-b border-l border-white/10 px-4 pt-4 pb-0">
             {/* Mock bar chart bars */}
-            {[40, 55, 45, 60, 75, 65, 80, 85, 95, 90].map((h, i) => (
-              <div key={i} className="w-full bg-primary hover:bg-primary/80 transition-colors rounded-t-sm" style={{ height: `${h}%` }}></div>
+            {[40, 55, 45, 60, 75, 65, 80, 85, 95, 90].map((h) => (
+              <div
+                key={h}
+                className="w-full bg-primary hover:bg-primary/80 transition-colors rounded-t-sm"
+                style={{ height: `${h}%` }}
+              />
             ))}
           </div>
           <div className="flex justify-between text-[10px] text-muted-foreground mt-2 px-4">
@@ -65,22 +76,22 @@ export default function AnalyticsDashboard() {
 
         {/* System Health */}
         <div className="glass-card p-6 flex flex-col items-center justify-center space-y-6">
-           <h2 className="text-sm font-semibold self-start">System Accuracy</h2>
-           <CRSGauge score={98.2} grade="A" size={160} />
-           <div className="w-full space-y-3">
-             <div className="flex justify-between text-xs">
-               <span className="text-muted-foreground">OCR Confidence (Avg)</span>
-               <span className="font-bold text-green-400">96.5%</span>
-             </div>
-             <div className="flex justify-between text-xs">
-               <span className="text-muted-foreground">HS RAG Precision</span>
-               <span className="font-bold text-green-400">94.8%</span>
-             </div>
-             <div className="flex justify-between text-xs">
-               <span className="text-muted-foreground">CEISA Auto-fix Rate</span>
-               <span className="font-bold text-blue-400">88.2%</span>
-             </div>
-           </div>
+          <h2 className="text-sm font-semibold self-start">System Accuracy</h2>
+          <CRSGauge score={98.2} grade="A" size={160} />
+          <div className="w-full space-y-3">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">OCR Confidence (Avg)</span>
+              <span className="font-bold text-green-400">96.5%</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">HS RAG Precision</span>
+              <span className="font-bold text-green-400">94.8%</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">CEISA Auto-fix Rate</span>
+              <span className="font-bold text-blue-400">88.2%</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

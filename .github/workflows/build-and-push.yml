@@ -1,0 +1,200 @@
+name: TradeFlow AI — CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/tradeflow-ai
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # opt-in before June 16 2026 forced cutover
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Lint & Type-check (fast gate)
+  # ─────────────────────────────────────────────
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4.1.0
+        # version is intentionally omitted — packageManager in package.json is the single source of truth
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (Biome)
+        run: pnpm turbo lint
+
+      - name: Type check
+        run: pnpm turbo typecheck
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"  # paddlepaddle only has cp313 wheels
+
+      - name: Python ruff lint
+        working-directory: apps/api
+        run: |
+          uv run ruff check src/
+          uv run ruff format --check src/
+
+      - name: Python mypy type check
+        working-directory: apps/api
+        run: uv run mypy src/ --ignore-missing-imports
+
+  # ─────────────────────────────────────────────
+  # Python unit tests
+  # ─────────────────────────────────────────────
+  test-api:
+    name: API Unit Tests
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"  # paddlepaddle only has cp313 wheels
+
+      - name: Run tests
+        working-directory: apps/api
+        env:
+          ENVIRONMENT: development
+          SECRET_KEY: ci-test-secret-key-at-least-32-characters
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
+          REDIS_URL: redis://localhost:6379/0
+          SUPABASE_URL: http://localhost:5432
+          SUPABASE_ANON_KEY: test-anon-key
+          SUPABASE_SERVICE_KEY: test-service-key
+          SUPABASE_JWT_SECRET: test-jwt-secret-at-least-32-chars-long
+          KEYCLOAK_SERVER_URL: http://localhost:8080
+          KEYCLOAK_CLIENT_SECRET: test-secret
+          KEYCLOAK_ISSUER: http://localhost:8080/realms/tradeflow
+          GEMINI_API_KEY: test-gemini-key
+        run: |
+          uv run pytest tests/ -v \
+            --tb=short \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            -m "not integration"
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        with:
+          file: apps/api/coverage.xml
+          flags: api-unit-tests
+
+  # ─────────────────────────────────────────────
+  # Eval gate — blocks merge if F1 regresses
+  # ─────────────────────────────────────────────
+  eval-gate:
+    name: OCR Eval Gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"  # paddlepaddle only has cp313 wheels
+
+      - name: Run eval (fast-path only in CI — no GPU)
+        working-directory: eval
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CI_EVAL: "true"
+        run: |
+          uv run python run_eval.py \
+            --fixtures fixtures/ \
+            --mode digital_pdf_only \
+            --fail-under-f1 0.95
+
+  # ─────────────────────────────────────────────
+  # Build & push Docker images (main branch only)
+  # ─────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [lint, test-api]
+    strategy:
+      matrix:
+        include:
+          - service: api
+            context: ./apps/api
+            dockerfile: ./apps/api/Dockerfile
+          - service: web
+            context: .
+            dockerfile: ./apps/web/Dockerfile
+          - service: simulator
+            context: ./apps/simulator
+            dockerfile: ./apps/simulator/Dockerfile
+          - service: surya-svc
+            context: ./apps/surya-svc
+            dockerfile: ./apps/surya-svc/Dockerfile
+          - service: paddleocr-svc
+            context: ./apps/paddleocr-svc
+            dockerfile: ./apps/paddleocr-svc/Dockerfile
+          - service: mineru-svc
+            context: ./apps/mineru-svc
+            dockerfile: ./apps/mineru-svc/Dockerfile
+          - service: olm-inference
+            context: ./apps/olm-inference
+            dockerfile: ./apps/olm-inference/Dockerfile
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

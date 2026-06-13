@@ -12,26 +12,36 @@ and resumability across server restarts.
 
 from __future__ import annotations
 
+import redis
 import structlog
-from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.redis import RedisSaver
+from langgraph.graph import END, StateGraph
 
-from .state import ExtractionGraphState
-from .nodes.preprocess import preprocess_documents_node
+from ..config import settings
 from .nodes.extract import llm_extraction_node
 from .nodes.fallback_ocr import fallback_ocr_node
-from .nodes.validate import validation_node
-from .nodes.risk import risk_assessment_node
 from .nodes.human_review import human_review_node
-from ..config import settings
+from .nodes.preprocess import preprocess_documents_node
+from .nodes.risk import risk_assessment_node
+from .nodes.validate import validation_node
+from .state import ExtractionGraphState
 
 log = structlog.get_logger()
 
 
 def _needs_fallback(state: ExtractionGraphState) -> str:
-    """Conditional edge: route to fallback OCR if any doc has error or no data."""
+    """Route to OCR ensemble fallback when quality, confidence, or data is weak."""
     for doc in state.get("documents", []):
         if doc.get("error") or not doc.get("extracted_data"):
+            return "fallback"
+        if doc.get("quality_score", 1.0) < settings.OCR_FALLBACK_TRIGGER_QUALITY:
+            return "fallback"
+        confidences = doc.get("field_confidences") or {}
+        if confidences and min(confidences.values()) < settings.OCR_FALLBACK_TRIGGER_CONFIDENCE:
+            return "fallback"
+        if doc.get("ocr_conflicts"):
+            return "fallback"
+        if len(doc.get("ocr_candidates") or {}) > 1:
             return "fallback"
     return "validate"
 
@@ -104,7 +114,8 @@ def get_compiled_graph():
     workflow = build_extraction_graph()
 
     # Redis checkpointer — stores full graph state per thread_id (batch_id)
-    checkpointer = RedisSaver.from_conn_string(settings.REDIS_URL)
+    redis_conn = redis.Redis.from_url(settings.REDIS_URL)
+    checkpointer = RedisSaver(redis_client=redis_conn)
 
     graph = workflow.compile(checkpointer=checkpointer, interrupt_before=["human_review"])
 

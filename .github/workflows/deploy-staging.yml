@@ -5,6 +5,9 @@ on:
     branches:
       - develop
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # opt-in before June 16 2026 forced cutover
+
 jobs:
   deploy-vercel-preview:
     runs-on: ubuntu-latest

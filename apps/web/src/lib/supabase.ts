@@ -26,7 +26,7 @@ export function subscribeToBatch(batchId: string, onUpdate: (payload: any) => vo
         table: "batches",
         filter: `id=eq.${batchId}`,
       },
-      (payload) => onUpdate(payload.new)
+      (payload) => onUpdate(payload.new),
     )
     .subscribe();
 }

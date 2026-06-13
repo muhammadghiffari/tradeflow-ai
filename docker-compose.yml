@@ -1,15 +1,16 @@
 services:
   # ─────────────────────────────────────────────
-  # SUPABASE LOCAL STACK
+  # 1. POSTGRES — Supabase local (single service)
   # ─────────────────────────────────────────────
-  supabase-db:
-    image: supabase/postgres:15.6.1.140
+  postgres:
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: postgres
     volumes:
-      - supabase-db-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/db/00-init-keycloak-schema.sql:/docker-entrypoint-initdb.d/00-init-keycloak-schema.sql:ro
       - ./packages/db/migrations:/docker-entrypoint-initdb.d/migrations:ro
     ports:
       - "5432:5432"
@@ -19,80 +20,18 @@ services:
       timeout: 5s
       retries: 5
 
-  supabase-realtime:
-    image: supabase/realtime:v2.30.32
-    restart: unless-stopped
-    depends_on:
-      supabase-db:
-        condition: service_healthy
-    environment:
-      DB_HOST: supabase-db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      DB_NAME: postgres
-      DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
-      DB_ENC_KEY: ${REALTIME_ENC_KEY:-supabase_realtime_dev_key}
-      API_JWT_SECRET: ${SUPABASE_JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      SECRET_KEY_BASE: ${REALTIME_SECRET_KEY_BASE:-EArlQos5yiMGxnCFsxY3ej1cjVObPKpfFc0MNhyP+tNRGJQ4MVtbzOFYHSlxdAHE}
-      PORT: 4000
-    ports:
-      - "4000:4000"
-
-  supabase-storage:
-    image: supabase/storage-api:v1.11.13
-    restart: unless-stopped
-    depends_on:
-      supabase-db:
-        condition: service_healthy
-    environment:
-      ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRFA0NiK7ACcEmkigg7jf-5j2kwkMVQmog4B5-enGpk}
-      SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hj04zWl196z2-SBc0}
-      POSTGREST_URL: http://supabase-db:3000
-      PGOPTIONS: -c search_path=storage,public
-      FILE_SIZE_LIMIT: 52428800    # 50MB
-      STORAGE_BACKEND: file
-      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-      REGION: local
-      GLOBAL_S3_BUCKET: storage
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
-      PGRST_JWT_SECRET: ${SUPABASE_JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-    volumes:
-      - supabase-storage-data:/var/lib/storage
-    ports:
-      - "5000:5000"
-
-  supabase-kong:
-    image: kong:3.6
-    restart: unless-stopped
-    depends_on:
-      supabase-db:
-        condition: service_healthy
-    environment:
-      KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
-      KONG_PROXY_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRFA0NiK7ACcEmkigg7jf-5j2kwkMVQmog4B5-enGpk}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hj04zWl196z2-SBc0}
-    # Internal only — not exposed externally (Traefik is the public gateway)
-    expose:
-      - "8000"
-
   # ─────────────────────────────────────────────
-  # AUTH — Keycloak 26
+  # 2. KEYCLOAK 26 — Auth provider (sole OIDC)
   # ─────────────────────────────────────────────
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+    image: quay.io/keycloak/keycloak:26.1
     restart: unless-stopped
     command: start-dev --import-realm
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://supabase-db:5432/postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/postgres
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       KC_DB_SCHEMA: keycloak
@@ -103,24 +42,24 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      supabase-db:
+      postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/realms/tradeflow/.well-known/openid-configuration || exit 1"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 10
       start_period: 60s
 
   # ─────────────────────────────────────────────
-  # REDIS 8 — Celery broker + LangGraph checkpointer
+  # 3. REDIS 8 — Celery broker + LangGraph checkpointer
   # ─────────────────────────────────────────────
   redis:
-    image: redis/redis-stack:latest
+    image: redis/redis-stack:8.0-M04
     restart: unless-stopped
     ports:
       - "6379:6379"
-      - "8001:8001"    # RedisInsight UI
+      - "8081:8001"    # RedisInsight UI
     volumes:
       - redis-data:/data
     healthcheck:
@@ -130,13 +69,13 @@ services:
       retries: 5
 
   # ─────────────────────────────────────────────
-  # CHROMADB — HS Code vector store
+  # 4. CHROMADB — HS Code vector store
   # ─────────────────────────────────────────────
   chromadb:
     image: chromadb/chroma:0.6.0
     restart: unless-stopped
     volumes:
-      - chromadb-data:/data
+      - chromadb-data:/chroma/chroma
     ports:
       - "8002:8000"
     environment:
@@ -150,28 +89,132 @@ services:
       retries: 5
 
   # ─────────────────────────────────────────────
-  # MinIO — Local object storage (S3-compatible)
+  # 5. SURYA-SVC — Agent A (Surya 2 via vLLM)
+  # GPU service — weights downloaded at startup
   # ─────────────────────────────────────────────
-  minio:
-    image: minio/minio:RELEASE.2025-01-20T14-49-07Z
+  surya-svc:
+    build:
+      context: ./apps/surya-svc
+      dockerfile: Dockerfile
     restart: unless-stopped
-    command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      HF_HUB_CACHE: /data/models
+      SURYA_MODEL: datalab-to/surya-ocr
+      PORT: 8001
     volumes:
-      - minio-data:/data
+      - model_cache:/data/models
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "8010:8001"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
       interval: 30s
-      timeout: 20s
-      retries: 3
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   # ─────────────────────────────────────────────
-  # FASTAPI — Backend API
+  # 6. OLM-INFERENCE — Agent D (olmOCR-2-7B-CIPL via vLLM + LoRA)
+  # GPU service — base model + LoRA adapter downloaded at startup
+  # ─────────────────────────────────────────────
+  olm-inference:
+    build:
+      context: ./apps/olm-inference
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      HF_HUB_CACHE: /data/models
+      OLM_BASE_MODEL: ${OLM_BASE_MODEL:-allenai/olmOCR-2-7B-1025}
+      OLM_LORA_ADAPTER: ${OLM_LORA_ADAPTER:-your-org/olm-ocr-cipl-v1}
+      HF_TOKEN: ${HF_TOKEN:-}
+      PORT: 8000
+    volumes:
+      - model_cache:/data/models
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+
+  # ─────────────────────────────────────────────
+  # 7. PADDLEOCR-SVC — Agent B + fast path (PP-StructureV3 + PP-ChatOCRv4)
+  # ─────────────────────────────────────────────
+  paddleocr-svc:
+    build:
+      context: ./apps/paddleocr-svc
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      HF_HUB_CACHE: /data/models
+      PORT: 8002
+    volumes:
+      - model_cache:/data/models
+    ports:
+      - "8011:8002"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ─────────────────────────────────────────────
+  # 8. MINERU-SVC — PDF preprocessing (MinerU 2.5)
+  # ─────────────────────────────────────────────
+  mineru-svc:
+    build:
+      context: ./apps/mineru-svc
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      HF_HUB_CACHE: /data/models
+      OCR_FAST_PATH_QUALITY_THRESHOLD: "0.95"
+      PORT: 8003
+    volumes:
+      - model_cache:/data/models
+    ports:
+      - "8012:8003"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8003/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────────────────────────
+  # 9. SIMULATOR — CEISA 4.0 PIA Simulator
+  # ─────────────────────────────────────────────
+  simulator:
+    build:
+      context: ./apps/simulator
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+    ports:
+      - "8006:8006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────
+  # 10. API — FastAPI Backend
   # ─────────────────────────────────────────────
   api:
     build:
@@ -179,130 +222,136 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      supabase-db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    env_file:
+      - .env
     environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
-      - REDIS_URL=redis://redis:6379/0
-      - KEYCLOAK_SERVER_URL=http://keycloak:8080
-      - KEYCLOAK_REALM=tradeflow
-      - STORAGE_BACKEND=minio
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
-      - CHROMADB_HOST=chromadb
-      - CHROMADB_PORT=8000
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379/0
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_REALM: tradeflow
+      SURYA_INFERENCE_URL: http://surya-svc:8001
+      OLM_INFERENCE_URL: http://olm-inference:8000
+      PADDLEOCR_SVC_URL: http://paddleocr-svc:8002
+      MINERU_SVC_URL: http://mineru-svc:8003
+      CEISA_BASE_URL: http://simulator:8006
+      CHROMADB_HOST: chromadb
+      CHROMADB_PORT: 8000
     volumes:
       - ./apps/api/src:/app/src:ro
-      - ./packages/db/validation_rules.json:/app/validation_rules.json  # hot-reload
+      - ./packages/db/validation_rules.json:/app/validation_rules.json
+      - ./packages/db/carrier_profiles.json:/app/carrier_profiles.json
     ports:
       - "8888:8888"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`api.localhost`)"
-      - "traefik.http.services.api.loadbalancer.server.port=8888"
 
   # ─────────────────────────────────────────────
-  # CELERY WORKER
+  # 11. CELERY-WORKER — Async task executor
   # ─────────────────────────────────────────────
-  worker:
+  celery-worker:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: celery -A src.tasks.celery_app worker --loglevel=info -Q critical,high,default,low
+    command: celery -A src.tasks.celery_app worker --loglevel=info -Q critical,high,default,low --concurrency=4
     depends_on:
       redis:
         condition: service_healthy
-      supabase-db:
+      postgres:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    env_file:
+      - .env
     environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
-      - REDIS_URL=redis://redis:6379/0
-      - KEYCLOAK_SERVER_URL=http://keycloak:8080
-      - KEYCLOAK_REALM=tradeflow
-      - STORAGE_BACKEND=minio
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
-      - CHROMADB_HOST=chromadb
-      - CHROMADB_PORT=8000
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379/0
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_REALM: tradeflow
+      SURYA_INFERENCE_URL: http://surya-svc:8001
+      OLM_INFERENCE_URL: http://olm-inference:8000
+      PADDLEOCR_SVC_URL: http://paddleocr-svc:8002
+      MINERU_SVC_URL: http://mineru-svc:8003
+      CEISA_BASE_URL: http://simulator:8006
+      CHROMADB_HOST: chromadb
+      CHROMADB_PORT: 8000
     volumes:
       - ./apps/api/src:/app/src:ro
       - ./packages/db/validation_rules.json:/app/validation_rules.json
+      - ./packages/db/carrier_profiles.json:/app/carrier_profiles.json
 
   # ─────────────────────────────────────────────
-  # CEISA SIMULATOR
+  # 12. WEB — Next.js 16 Frontend
   # ─────────────────────────────────────────────
-  simulator:
+  web:
     build:
-      context: ./apps/simulator
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "8001:8001"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.simulator.rule=Host(`simulator.localhost`)"
-      - "traefik.http.services.simulator.loadbalancer.server.port=8001"
-
-  # ─────────────────────────────────────────────
-  # NEXT.JS FRONTEND
-  # ─────────────────────────────────────────────
-  frontend:
-    build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
       target: development
     restart: unless-stopped
     depends_on:
       - api
+    env_file:
+      - .env
     environment:
-      - NEXT_PUBLIC_API_URL=http://api.localhost
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-32-chars-long-minimum!!}
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-tradeflow-web}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-change-me}
-      - KEYCLOAK_ISSUER=http://localhost:8080/realms/tradeflow
-      - NEXT_PUBLIC_SUPABASE_URL=http://localhost:5000
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRFA0NiK7ACcEmkigg7jf-5j2kwkMVQmog4B5-enGpk}
+      INTERNAL_API_URL: http://api:8888
+      NEXT_PUBLIC_API_URL: http://localhost:8888
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-secret-32-chars-long-minimum!!}
+      KEYCLOAK_WEB_CLIENT_ID: ${KEYCLOAK_WEB_CLIENT_ID:-tradeflow-web}
+      KEYCLOAK_WEB_CLIENT_SECRET: ${KEYCLOAK_WEB_CLIENT_SECRET:-change-me}
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/tradeflow
     volumes:
-      - ./apps/web/src:/app/src:ro
+      - ./apps/web:/app/apps/web:delegated
+      - web-node-modules:/app/apps/web/node_modules
     ports:
       - "3000:3000"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`localhost`)"
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
   # ─────────────────────────────────────────────
-  # TRAEFIK — Reverse proxy (main public gateway)
-  # supabase-kong is internal only, not exposed
+  # 13. PROMETHEUS — Metrics collection
   # ─────────────────────────────────────────────
-  traefik:
-    image: traefik:v3.2
+  prometheus:
+    image: prom/prometheus:v2.53.0
     restart: unless-stopped
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--log.level=INFO"
-    ports:
-      - "80:80"
-      - "8090:8080"   # Traefik dashboard (port 8090 → avoids conflict with Keycloak)
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+
+  # ─────────────────────────────────────────────
+  # 14. GRAFANA — Metrics visualization
+  # ─────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.0.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
 
 volumes:
-  supabase-db-data:
-  supabase-storage-data:
+  postgres-data:
   redis-data:
   chromadb-data:
-  minio-data:
+  model_cache:        # Shared volume for ALL model weights — mounted into all inference services
+  web-node-modules:
+  prometheus-data:
+  grafana-data:

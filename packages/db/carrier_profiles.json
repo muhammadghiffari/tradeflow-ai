@@ -1,0 +1,105 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-13",
+  "description": "Carrier SCAC profiles for field normalizer and routing decisions (FR-119). Used by mineru-svc to detect carrier SCAC from B/L layout and select the optimal OCR extraction template.",
+  "carriers": {
+    "HLCU": {
+      "name": "Hapag-Lloyd",
+      "aka": ["Hapag Lloyd", "Hapag-Lloyd AG"],
+      "processing_route": "FAST_PATH",
+      "primary_bl_language": "en",
+      "bl_number_pattern": "^(HLCU|HLBV)\\d{9}$",
+      "layout_hints": {
+        "shipper_position": "top_left",
+        "consignee_position": "top_right",
+        "vessel_field_label": "VESSEL / VOYAGE",
+        "bl_number_label": "B/L NUMBER"
+      },
+      "field_normalizations": {
+        "voyage_number": { "trim": true, "uppercase": true },
+        "vessel_name": {
+          "trim": true,
+          "uppercase": true,
+          "remove_prefix": ["M/V ", "MV ", "S.S. "]
+        }
+      },
+      "known_vessels": ["RIO DE LA PLATA", "CAP VERDE"]
+    },
+    "MAEU": {
+      "name": "Maersk Line",
+      "aka": ["Maersk", "A.P. Moller-Maersk", "NMV MAERSK"],
+      "processing_route": "FAST_PATH",
+      "primary_bl_language": "en",
+      "bl_number_pattern": "^\\d{9}$",
+      "layout_hints": {
+        "shipper_position": "top_left",
+        "consignee_position": "top_right",
+        "vessel_field_label": "VESSEL / VOY. NO.",
+        "bl_number_label": "B/L No."
+      },
+      "field_normalizations": {
+        "voyage_number": { "trim": true, "uppercase": true },
+        "vessel_name": {
+          "trim": true,
+          "uppercase": true,
+          "remove_prefix": ["NMV ", "MV ", "M.V. "]
+        }
+      },
+      "known_vessels": ["NMV MAERSK COPENHAGEN"]
+    },
+    "EGLV": {
+      "name": "Evergreen Marine",
+      "aka": ["Evergreen", "Evergreen Marine Corporation", "Evergreen Line"],
+      "processing_route": "STANDARD",
+      "primary_bl_language": "en",
+      "bl_number_pattern": "^(EGHU|EITU|EISU)\\d{9}$",
+      "layout_hints": {
+        "shipper_position": "top_left",
+        "consignee_position": "middle_left",
+        "vessel_field_label": "VESSEL AND VOY. NO.",
+        "bl_number_label": "B/L NO."
+      },
+      "field_normalizations": {
+        "voyage_number": { "trim": true, "uppercase": true },
+        "vessel_name": { "trim": true, "uppercase": true, "remove_suffix": [" V."] }
+      },
+      "known_vessels": ["CAPE NORVIEGA", "HANJIN ROTTERDAM", "KMTC DUBAI"]
+    },
+    "CSLU": {
+      "name": "Cordelia Container Shipping Line",
+      "aka": ["CSLU", "Cordelia"],
+      "processing_route": "STANDARD",
+      "primary_bl_language": "en",
+      "bl_number_pattern": "^(CSLU|CSOU)\\d{9}$",
+      "layout_hints": {
+        "shipper_position": "top_left",
+        "consignee_position": "top_right",
+        "vessel_field_label": "VESSEL / VOYAGE",
+        "bl_number_label": "B/L NUMBER"
+      },
+      "field_normalizations": {
+        "voyage_number": { "trim": true, "uppercase": true },
+        "vessel_name": { "trim": true, "uppercase": true }
+      },
+      "known_vessels": ["GFS GISELLE"]
+    },
+    "CMDU": {
+      "name": "CMA CGM",
+      "aka": ["CMA CGM S.A.", "CMA-CGM", "APL"],
+      "processing_route": "STANDARD",
+      "primary_bl_language": "en",
+      "bl_number_pattern": "^(CMDU|APLU)\\d{9}$",
+      "layout_hints": {
+        "shipper_position": "top_left",
+        "consignee_position": "top_right",
+        "vessel_field_label": "VESSEL / VOYAGE NO.",
+        "bl_number_label": "B/L No."
+      },
+      "field_normalizations": {
+        "voyage_number": { "trim": true, "uppercase": true },
+        "vessel_name": { "trim": true, "uppercase": true }
+      },
+      "known_vessels": []
+    }
+  }
+}

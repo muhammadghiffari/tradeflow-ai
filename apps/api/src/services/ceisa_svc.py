@@ -16,7 +16,7 @@ import base64
 import json
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 import structlog
@@ -32,18 +32,17 @@ OPERATOR_REQUIRED_CODES = {"E101", "E102", "E103", "E201", "E202"}
 # Everything else → ADMIN_ESCALATION
 
 
-def _encrypt_payload(data: dict) -> bytes:
+def _encrypt_payload(data: dict) -> dict | str:
     """AES-256-GCM encryption for CEISA payload."""
-    key_b64 = os.environ.get("CEISA_AES_KEY", "")
-    if not key_b64:
-        # Dev mode: no encryption, just JSON encode
-        return json.dumps(data).encode()
-    key = base64.b64decode(key_b64)
+    if not settings.CEISA_AES_KEY:
+        return data
+
+    key = base64.b64decode(settings.CEISA_AES_KEY.get_secret_value())
     aesgcm = AESGCM(key)
     nonce = os.urandom(12)
     plaintext = json.dumps(data).encode()
     ciphertext = aesgcm.encrypt(nonce, plaintext, None)
-    return nonce + ciphertext
+    return base64.b64encode(nonce + ciphertext).decode()
 
 
 def _classify_error(error_code: str | None) -> str:
@@ -65,7 +64,7 @@ def _build_ceisa_payload(extracted_data: dict, batch_id: str, idempotency_key: s
     return {
         "idempotencyKey": idempotency_key,
         "batchId": batch_id,
-        "submittedAt": datetime.now(timezone.utc).isoformat(),
+        "submittedAt": datetime.now(UTC).isoformat(),
         "header": {
             "jenisPI": "I",  # Import
             "kdKantor": "050100",  # Cikarang Dry Port
@@ -85,8 +84,7 @@ class CEISASubmissionService:
     """Handles submission to CEISA 4.0 (or local simulator)."""
 
     def __init__(self) -> None:
-        # In dev, point to simulator; in prod, real CEISA endpoint
-        self.base_url = os.environ.get("CEISA_BASE_URL", "http://simulator:8001")
+        self.base_url = settings.CEISA_BASE_URL
         self.timeout = httpx.Timeout(30.0, connect=5.0)
 
     async def submit(
@@ -113,9 +111,14 @@ class CEISASubmissionService:
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                if isinstance(encrypted, str):
+                    json_body = {"encrypted": encrypted}
+                else:
+                    json_body = encrypted
+
                 resp = await client.post(
                     f"{self.base_url}/api/v1/submit",
-                    content=encrypted,
+                    json=json_body,
                     headers={
                         "Content-Type": "application/json",
                         "X-Idempotency-Key": idempotency_key,

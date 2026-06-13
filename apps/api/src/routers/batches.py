@@ -4,15 +4,25 @@ TradeFlow AI — Review endpoint wired to LangGraph resume
 
 from __future__ import annotations
 
-from typing import Annotated, Any
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
-from pydantic import BaseModel
-from supabase import AsyncClient
-import structlog
 import uuid
+from typing import Annotated, Any
+try:
+    import magic
+except Exception:  # pragma: no cover - optional dependency in lightweight test runs
+    magic = None
+import mimetypes
+
+import structlog
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from pathlib import Path
+from pydantic import BaseModel
+try:
+    from supabase import AsyncClient
+except Exception:  # pragma: no cover - optional for tests
+    AsyncClient = None
 
 from ..dependencies import CurrentUser, get_current_user, get_supabase, require_operator
-from ..services.ingest_svc import storage_service
+from ..services.ingest_svc import get_storage_service
 from ..tasks.ocr_tasks import preprocess_document
 
 log = structlog.get_logger()
@@ -26,7 +36,18 @@ ALLOWED_MIME_TYPES = {
     "image/webp",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 }
+MAGIC_MIME_EQUIVALENTS = {
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {"application/zip"},
+}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+
+
+def _is_allowed_magic_type(real_mime: str, claimed_mime: str | None) -> bool:
+    if real_mime in ALLOWED_MIME_TYPES:
+        return True
+    if claimed_mime:
+        return real_mime in MAGIC_MIME_EQUIVALENTS.get(claimed_mime, set())
+    return False
 
 
 @router.post("/batches", status_code=status.HTTP_201_CREATED)
@@ -34,15 +55,20 @@ async def create_batch(
     user: Annotated[CurrentUser, Depends(get_current_user)],
     supabase: Annotated[AsyncClient, Depends(get_supabase)],
     files: list[UploadFile] = File(...),
-) -> dict[str, Any]:
+    doc_types: list[str] | None = Form(None),
+) -> dict[str, Any]:  # noqa: B008
     """Upload documents and create a new processing batch."""
     if not user.company_id:
         raise HTTPException(status_code=400, detail="User is not associated with a company.")
     if len(files) > 3:
         raise HTTPException(status_code=400, detail="Maximum 3 files per batch (B/L, Invoice, Packing List).")
+    if doc_types is not None and len(doc_types) != len(files):
+        raise HTTPException(status_code=400, detail="doc_types must contain one value per uploaded file.")
 
     batch_id = str(uuid.uuid4())
     documents = []
+    inserted_docs: list[str] = []
+    storage_service = get_storage_service()
 
     await supabase.table("batches").insert({
         "id": batch_id,
@@ -51,35 +77,81 @@ async def create_batch(
         "status": "uploaded",
     }).execute()
 
-    for file in files:
-        if file.content_type not in ALLOWED_MIME_TYPES:
-            raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
-        file_bytes = await file.read()
-        if len(file_bytes) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=400, detail=f"{file.filename} exceeds 50MB limit.")
+    try:
+        for index, file in enumerate(files):
+            # Sanitize filename (prevent path traversal)
+            filename = Path(file.filename or "file").name
+            
+            # Read and validate file
+            file_bytes = await file.read()
+            if len(file_bytes) > MAX_FILE_SIZE:
+                detail = f"{filename} exceeds 50MB limit."
+                raise HTTPException(status_code=400, detail=detail)
+            
+            # Claimed MIME type validation
+            if file.content_type not in ALLOWED_MIME_TYPES:
+                detail = f"Unsupported file type: {file.content_type}"
+                raise HTTPException(status_code=400, detail=detail)
+            
+            # Magic number validation (real file type check)
+            try:
+                if magic is not None:
+                    real_mime = magic.from_buffer(file_bytes, mime=True)
+                else:
+                    # Fallback: use claimed content type or filename-based guess
+                    real_mime = file.content_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
 
-        doc_id = str(uuid.uuid4())
-        file_hash = storage_service.compute_hash(file_bytes)
-        doc_type = _infer_doc_type(file.filename or "")
-        object_path = await storage_service.upload_document(batch_id, doc_id, file.filename or "doc", file_bytes)
+                if not _is_allowed_magic_type(real_mime, file.content_type):
+                    detail = f"File content type {real_mime} does not match claimed type. Possible spoofed file."
+                    raise HTTPException(status_code=400, detail=detail)
+            except HTTPException:
+                raise
+            except Exception as magic_err:
+                log.warning("Could not validate file magic number", error=str(magic_err))
 
-        await supabase.table("documents").insert({
-            "id": doc_id,
-            "batch_id": batch_id,
-            "doc_type": doc_type,
-            "original_name": file.filename,
-            "storage_path": object_path,
-            "file_hash": file_hash,
-            "file_size_bytes": len(file_bytes),
-            "status": "uploaded",
-        }).execute()
-        documents.append({"id": doc_id, "type": doc_type})
+            doc_id = str(uuid.uuid4())
+            file_hash = storage_service.compute_hash(file_bytes)
+            override = doc_types[index].strip().lower() if doc_types is not None else None
+            doc_type = _resolve_doc_type(file.filename or "", override)
+            object_path = await storage_service.upload_document(
+                batch_id,
+                doc_id,
+                file.filename or "doc",
+                file_bytes,
+            )
+
+            await supabase.table("documents").insert({
+                "id": doc_id,
+                "batch_id": batch_id,
+                "doc_type": doc_type,
+                "original_name": file.filename,
+                "storage_path": object_path,
+                "file_hash": file_hash,
+                "file_size_bytes": len(file_bytes),
+                "status": "uploaded",
+            }).execute()
+            inserted_docs.append(doc_id)
+            documents.append({"id": doc_id, "type": doc_type})
+
+    except HTTPException:
+        if inserted_docs:
+            await supabase.table("documents").delete().eq("batch_id", batch_id).execute()
+        await supabase.table("batches").delete().eq("id", batch_id).execute()
+        raise
+    except Exception as exc:
+        if inserted_docs:
+            await supabase.table("documents").delete().eq("batch_id", batch_id).execute()
+        await supabase.table("batches").delete().eq("id", batch_id).execute()
+        log.error("Failed to create batch", batch_id=batch_id, error=str(exc))
+        raise HTTPException(status_code=500, detail="Failed to create batch") from exc
+
+    await supabase.table("batches").update({"status": "preprocessing"}).eq("id", batch_id).execute()
 
     queue = "high" if user.is_enterprise else "default"
     preprocess_document.apply_async(args=[batch_id], queue=queue)
 
-    log.info("Batch created", batch_id=batch_id, user=user.id, docs=len(files))
-    return {"batch_id": batch_id, "status": "processing", "documents": documents}
+    log.info("Batch created", batch_id=batch_id, user=user.id, docs=len(files), tier=user.tier)
+    return {"batch_id": batch_id, "status": "preprocessing", "documents": documents}
 
 
 @router.get("/batches")
@@ -161,7 +233,7 @@ async def submit_review(
         await extraction_graph.ainvoke(None, config=config)
     except Exception as exc:
         log.error("Graph resume failed", batch_id=batch_id, error=str(exc))
-        raise HTTPException(status_code=500, detail=f"Failed to resume processing: {exc}")
+        raise HTTPException(status_code=500, detail=f"Failed to resume processing: {exc}") from exc
 
     await supabase.table("batches").update({"status": "review_complete"}).eq("id", batch_id).execute()
     return {"status": "review_complete", "batch_id": batch_id}
@@ -185,6 +257,15 @@ async def submit_to_ceisa_endpoint(
 
     submit_to_ceisa.apply_async(args=[batch_id, submission_id], queue="high")
     return {"status": "queued", "submission_id": submission_id}
+
+
+def _resolve_doc_type(filename: str, override: str | None) -> str:
+    if override:
+        normalized = override.strip().lower()
+        if normalized in ("bill_of_lading", "packing_list", "invoice"):
+            return normalized
+        raise HTTPException(status_code=400, detail=f"Invalid doc_type override: {override}")
+    return _infer_doc_type(filename)
 
 
 def _infer_doc_type(filename: str) -> str:

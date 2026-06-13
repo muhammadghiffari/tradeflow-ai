@@ -4,22 +4,21 @@ TradeFlow AI — Synthetic Evaluation Dataset Generator (Phase 7)
 
 import json
 import uuid
-from datetime import datetime, timedelta
 from pathlib import Path
 
 DATA_DIR = Path(__file__).parent.parent / "eval_data"
 
 def generate_dataset():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     scenarios = []
-    
+
     # Generate 15 synthetic datasets
     for i in range(1, 16):
         is_happy = i <= 8
         is_warning = 8 < i <= 12
         is_critical = i > 12
-        
+
         scenario = {
             "dataset_id": f"eval-{i:03d}",
             "expected_hs_code": "8517.62.21" if is_happy else "8471.30.20",
@@ -48,7 +47,7 @@ def generate_dataset():
     output_path = DATA_DIR / "synthetic_eval_set.json"
     with open(output_path, "w") as f:
         json.dump(scenarios, f, indent=2)
-        
+
     print(f"Generated {len(scenarios)} synthetic evaluation scenarios at {output_path}")
 
 if __name__ == "__main__":

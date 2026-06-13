@@ -5,27 +5,38 @@ PRD §1.4 — Main application setup with lifespan management,
 middleware, and router registration.
 """
 
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
-import sentry_sdk
+try:
+    import sentry_sdk
+except Exception:  # pragma: no cover - optional dependency for observability
+    sentry_sdk = None
+
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+try:
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+except Exception:  # pragma: no cover - optional
+    FastAPIInstrumentor = None
+
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+except Exception:  # pragma: no cover - optional
+    Instrumentator = None
 
 from .config import settings
-from .routers import batches, hs_recommend, blockchain, admin
-from .dependencies import init_supabase, close_supabase
+from .dependencies import close_supabase, init_supabase
+from .routers import admin, batches, blockchain, hs_recommend, vessel
 from .utils.telemetry import setup_telemetry
 
 log = structlog.get_logger()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan — startup and shutdown."""
     log.info("TradeFlow AI starting up", environment=settings.ENVIRONMENT)
 
@@ -67,25 +78,38 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+        expose_headers=["Content-Length"],
+        max_age=3600,
     )
     app.add_middleware(GZipMiddleware, minimum_size=1000)
+    
+    # Rate limiting middleware (optional)
+    try:
+        from slowapi import Limiter
+        from slowapi.util import get_remote_address
+        limiter = Limiter(key_func=get_remote_address)
+        app.state.limiter = limiter
+    except Exception:
+        app.state.limiter = None
 
     # ── Routers ───────────────────────────────────────────────────
     app.include_router(batches.router, prefix="/api/v1", tags=["batches"])
     app.include_router(hs_recommend.router, prefix="/api/v1", tags=["hs-recommend"])
     app.include_router(blockchain.router, prefix="/api/v1", tags=["blockchain"])
+    app.include_router(vessel.router)
     app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 
-    # ── Prometheus metrics ────────────────────────────────────────
-    Instrumentator(
-        should_group_status_codes=True,
-        should_ignore_untemplated=True,
-    ).instrument(app).expose(app, endpoint="/metrics")
+    # ── Prometheus metrics (optional) ────────────────────────────
+    if Instrumentator is not None:
+        Instrumentator(
+            should_group_status_codes=True,
+            should_ignore_untemplated=True,
+        ).instrument(app).expose(app, endpoint="/metrics")
 
-    # ── OpenTelemetry ─────────────────────────────────────────────
-    if settings.OTEL_ENABLED:
+    # ── OpenTelemetry (optional) ─────────────────────────────────
+    if settings.OTEL_ENABLED and FastAPIInstrumentor is not None:
         FastAPIInstrumentor().instrument_app(app)
 
     return app

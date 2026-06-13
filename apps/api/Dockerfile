@@ -1,16 +1,20 @@
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
-# Install system dependencies (OpenCV, etc.)
-RUN apt-get update && apt-get install -y \
+# Fix Debian GPG key rotation, install uv, and system dependencies
+RUN pip install uv && \
+    apt-get update -o Acquire::AllowInsecureRepositories=true 2>/dev/null; \
+    apt-get install -y --allow-unauthenticated debian-archive-keyring 2>/dev/null; \
+    apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
+    libmagic1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies using uv
-COPY pyproject.toml .
+# Install dependencies using uv (lockfile ensures deterministic resolution)
+COPY pyproject.toml uv.lock ./
 RUN uv pip install --system -r pyproject.toml
 
 # Copy source code

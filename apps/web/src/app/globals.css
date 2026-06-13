@@ -1,9 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @layer base {
   :root {
     /* TradeFlow AI — Dark navy design system */
@@ -38,48 +37,74 @@
     --grade-f: 0 72% 60%;
   }
 
-  * { @apply border-border; }
+  * {
+    @apply border-border;
+  }
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: "Inter", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
-  code, kbd, pre { font-family: 'JetBrains Mono', monospace; }
+  code,
+  kbd,
+  pre {
+    font-family: "JetBrains Mono", monospace;
+  }
 }
 
 @layer components {
   /* ── Glass card ───────────────────────────────────────────────── */
   .glass-card {
     @apply rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm;
-    box-shadow: 0 4px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   /* ── Gradient text ───────────────────────────────────────────── */
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(213,94%,70%), hsl(262,83%,75%));
+    background-image: linear-gradient(135deg, hsl(213, 94%, 70%), hsl(262, 83%, 75%));
   }
 
   /* ── CRS gauge arc ───────────────────────────────────────────── */
-  .crs-gauge { filter: drop-shadow(0 0 12px hsl(var(--primary) / 0.5)); }
+  .crs-gauge {
+    filter: drop-shadow(0 0 12px hsl(var(--primary) / 0.5));
+  }
 
   /* ── Status pill ─────────────────────────────────────────────── */
   .status-pill {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
-  .status-pill.processing { @apply bg-blue-500/15 text-blue-400 ring-1 ring-blue-500/30; }
-  .status-pill.review     { @apply bg-yellow-500/15 text-yellow-400 ring-1 ring-yellow-500/30; }
-  .status-pill.accepted   { @apply bg-green-500/15 text-green-400 ring-1 ring-green-500/30; }
-  .status-pill.rejected   { @apply bg-red-500/15 text-red-400 ring-1 ring-red-500/30; }
-  .status-pill.uploaded   { @apply bg-slate-500/15 text-slate-400 ring-1 ring-slate-500/30; }
+  .status-pill.processing {
+    @apply bg-blue-500/15 text-blue-400 ring-1 ring-blue-500/30;
+  }
+  .status-pill.review {
+    @apply bg-yellow-500/15 text-yellow-400 ring-1 ring-yellow-500/30;
+  }
+  .status-pill.accepted {
+    @apply bg-green-500/15 text-green-400 ring-1 ring-green-500/30;
+  }
+  .status-pill.rejected {
+    @apply bg-red-500/15 text-red-400 ring-1 ring-red-500/30;
+  }
+  .status-pill.uploaded {
+    @apply bg-slate-500/15 text-slate-400 ring-1 ring-slate-500/30;
+  }
 
   /* ── Risk badge ──────────────────────────────────────────────── */
-  .risk-low      { @apply text-green-400 bg-green-400/10 border border-green-400/20; }
-  .risk-medium   { @apply text-yellow-400 bg-yellow-400/10 border border-yellow-400/20; }
-  .risk-high     { @apply text-orange-400 bg-orange-400/10 border border-orange-400/20; }
-  .risk-critical { @apply text-red-400 bg-red-400/10 border border-red-400/20; }
+  .risk-low {
+    @apply text-green-400 bg-green-400/10 border border-green-400/20;
+  }
+  .risk-medium {
+    @apply text-yellow-400 bg-yellow-400/10 border border-yellow-400/20;
+  }
+  .risk-high {
+    @apply text-orange-400 bg-orange-400/10 border border-orange-400/20;
+  }
+  .risk-critical {
+    @apply text-red-400 bg-red-400/10 border border-red-400/20;
+  }
 
   /* ── Upload drop zone ────────────────────────────────────────── */
   .drop-zone {
@@ -97,7 +122,9 @@
     @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium
            text-muted-foreground transition-all duration-200;
   }
-  .nav-item:hover { @apply bg-white/5 text-foreground; }
+  .nav-item:hover {
+    @apply bg-white/5 text-foreground;
+  }
   .nav-item.active {
     @apply bg-primary/15 text-primary;
     box-shadow: inset 3px 0 0 hsl(var(--primary));
@@ -108,13 +135,19 @@
     @apply relative h-2 w-2 rounded-full bg-green-400;
   }
   .pulse-dot::before {
-    content: '';
+    content: "";
     @apply absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75;
   }
 }
 
 @layer utilities {
-  .text-balance { text-wrap: balance; }
-  .scrollbar-hidden { scrollbar-width: none; }
-  .scrollbar-hidden::-webkit-scrollbar { display: none; }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .scrollbar-hidden {
+    scrollbar-width: none;
+  }
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
 }

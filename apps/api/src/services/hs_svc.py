@@ -11,11 +11,11 @@ Architecture:
 
 from __future__ import annotations
 
-import structlog
 import chromadb
+import structlog
 from chromadb.utils import embedding_functions
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from ..config import settings
 
@@ -49,9 +49,9 @@ class HSRecommendService:
             port=settings.CHROMADB_PORT,
         )
 
-        # OpenAI embedding function (text-embedding-3-small)
-        self.embed_fn = embedding_functions.OpenAIEmbeddingFunction(
-            api_key=settings.OPENAI_API_KEY,
+        # Google Gemini embedding function (free, text-embedding-004)
+        self.embed_fn = embedding_functions.GoogleGenerativeAiEmbeddingFunction(
+            api_key=settings.GEMINI_API_KEY,
             model_name=settings.EMBEDDING_MODEL,
         )
 
