@@ -6,6 +6,9 @@ on:
       - main
   # Manual approval gate handled by GitHub environments
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # opt-in before June 16 2026 forced cutover
+
 jobs:
   deploy-vercel-prod:
     runs-on: ubuntu-latest

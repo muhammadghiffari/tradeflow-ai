@@ -2,7 +2,7 @@
 name = "tradeflow-api"
 version = "1.0.0"
 description = "TradeFlow AI — FastAPI Backend"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"  # paddlepaddle does not yet have cp314 wheels
 dependencies = [
     # Web framework
     "fastapi>=0.115.6",
@@ -42,8 +42,8 @@ dependencies = [
     "openai>=1.58.1",         # text-embedding-3-small
 
     # OCR & document processing
-    "paddleocr>=2.9.1",
-    "paddlepaddle>=2.6.2",
+    "paddleocr>=2.9.1,<3.0",
+    "paddlepaddle>=2.6.2,<3.4",  # cp313 wheels only; 3.3.1 is latest tested
     "pymupdf>=1.25.3",
     "pdfplumber>=0.11.4",
     "openpyxl>=3.1.0",

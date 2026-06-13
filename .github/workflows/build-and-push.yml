@@ -9,6 +9,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/tradeflow-ai
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # opt-in before June 16 2026 forced cutover
 
 jobs:
   # ─────────────────────────────────────────────
@@ -20,9 +21,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      - uses: pnpm/action-setup@v4.1.0
+        # version is intentionally omitted — packageManager in package.json is the single source of truth
 
       - uses: actions/setup-node@v4
         with:
@@ -39,9 +39,9 @@ jobs:
         run: pnpm turbo typecheck
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
-          version: "latest"
+          python-version: "3.13"  # paddlepaddle only has cp313 wheels
 
       - name: Python ruff lint
         working-directory: apps/api
@@ -69,9 +69,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
-          version: "latest"
+          python-version: "3.13"  # paddlepaddle only has cp313 wheels
 
       - name: Run tests
         working-directory: apps/api
@@ -97,7 +97,7 @@ jobs:
             -m "not integration"
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: apps/api/coverage.xml
           flags: api-unit-tests
@@ -114,9 +114,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
-          version: "latest"
+          python-version: "3.13"  # paddlepaddle only has cp313 wheels
 
       - name: Run eval (fast-path only in CI — no GPU)
         working-directory: eval
