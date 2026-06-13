@@ -10,7 +10,6 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./infra/db/00-init-keycloak-schema.sql:/docker-entrypoint-initdb.d/00-init-keycloak-schema.sql:ro
       - ./packages/db/migrations:/docker-entrypoint-initdb.d/migrations:ro
     ports:
       - "5432:5432"
@@ -26,7 +25,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.1
     restart: unless-stopped
-    command: start-dev --import-realm
+    command: start-dev
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
@@ -37,8 +36,6 @@ services:
       KC_DB_SCHEMA: keycloak
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
-    volumes:
-      - ./infra/keycloak/realm-tradeflow.json:/opt/keycloak/data/import/realm-tradeflow.json:ro
     ports:
       - "8080:8080"
     depends_on:
@@ -94,8 +91,8 @@ services:
   # ─────────────────────────────────────────────
   surya-svc:
     build:
-      context: ./apps/surya-svc
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/surya-svc/Dockerfile
     restart: unless-stopped
     environment:
       HF_HUB_CACHE: /data/models
@@ -157,8 +154,8 @@ services:
   # ─────────────────────────────────────────────
   paddleocr-svc:
     build:
-      context: ./apps/paddleocr-svc
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/paddleocr-svc/Dockerfile
     restart: unless-stopped
     environment:
       HF_HUB_CACHE: /data/models
@@ -179,8 +176,8 @@ services:
   # ─────────────────────────────────────────────
   mineru-svc:
     build:
-      context: ./apps/mineru-svc
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/mineru-svc/Dockerfile
     restart: unless-stopped
     environment:
       HF_HUB_CACHE: /data/models

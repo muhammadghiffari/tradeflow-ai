@@ -56,11 +56,17 @@ class HSRecommendService:
         )
 
         # Gemini reranker
-        self.llm = ChatGoogleGenerativeAI(
+        primary_llm = ChatGoogleGenerativeAI(
             model=settings.GEMINI_MODEL_PRIMARY,
             temperature=0.1,
             api_key=settings.GEMINI_API_KEY,
         )
+        fallback_llm = ChatGoogleGenerativeAI(
+            model=settings.GEMINI_MODEL_FALLBACK,
+            temperature=0.1,
+            api_key=settings.GEMINI_API_KEY,
+        )
+        self.llm = primary_llm.with_fallbacks([fallback_llm])
 
     def _get_collection(self) -> chromadb.Collection:
         return self.chroma.get_or_create_collection(

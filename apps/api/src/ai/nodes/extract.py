@@ -90,11 +90,17 @@ async def llm_extraction_node(state: ExtractionGraphState) -> dict:
             else:
                 if ChatGoogleGenerativeAI is None:
                     raise RuntimeError("Production LLM dependency 'langchain_google_genai' is not installed")
-                llm = ChatGoogleGenerativeAI(
+                primary_llm = ChatGoogleGenerativeAI(
                     model=settings.GEMINI_MODEL_PRIMARY,
                     temperature=0,
                     api_key=settings.GEMINI_API_KEY
                 )
+                fallback_llm = ChatGoogleGenerativeAI(
+                    model=settings.GEMINI_MODEL_FALLBACK,
+                    temperature=0,
+                    api_key=settings.GEMINI_API_KEY
+                )
+                llm = primary_llm.with_fallbacks([fallback_llm])
 
             structured_llm = llm.with_structured_output(CEISAFields)
             # Support both synchronous return and awaitable (coroutine/AsyncMock)
