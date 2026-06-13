@@ -49,8 +49,8 @@ def test_gemini_api_key_from_env(monkeypatch):
     )
     
     assert settings.GEMINI_API_KEY == "AIzaSy_valid_test_key_1234567890"
-    # Ensure the API key is not hardcoded in config.py
-    assert settings.GEMINI_API_KEY != "AIzaSyDGED8ipUMA0mY_O8bxIuRPh2TSwfpT7u8"
+    # Ensure the config loads dynamically and is not a hardcoded default
+    assert settings.GEMINI_API_KEY is not None
 
 
 def test_cors_origins_controlled():

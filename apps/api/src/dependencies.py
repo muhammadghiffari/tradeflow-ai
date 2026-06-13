@@ -40,7 +40,7 @@ async def init_supabase() -> None:
 
     _supabase_client = await acreate_client(
         settings.SUPABASE_URL,
-        settings.SUPABASE_SERVICE_KEY,  # Service key for server-side ops
+        settings.SUPABASE_SERVICE_KEY.get_secret_value(),  # Service key for server-side ops
     )
     log.info("Supabase client initialized")
 

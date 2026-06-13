@@ -23,14 +23,21 @@ from typing import Optional
 
 import requests
 
+
+def _fail(msg: str) -> str:
+    """Fail fast if a required environment variable is missing."""
+    print(f"ERROR: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
 KEYCLOAK_URL = os.getenv("KEYCLOAK_SERVER_URL", "http://localhost:8080")
-ADMIN_USER = os.getenv("KEYCLOAK_ADMIN", "admin")
-ADMIN_PASS = os.getenv("KEYCLOAK_ADMIN_PASSWORD", "admin1234")
+ADMIN_USER = os.getenv("KEYCLOAK_ADMIN") or _fail("KEYCLOAK_ADMIN env var is required")
+ADMIN_PASS = os.getenv("KEYCLOAK_ADMIN_PASSWORD") or _fail("KEYCLOAK_ADMIN_PASSWORD env var is required")
 REALM = os.getenv("KEYCLOAK_REALM", "tradeflow")
 
 CLIENT_ID = "tradeflow-e2e-client"
 USERNAME = "e2e-user"
-PASSWORD = "e2e-password"
+PASSWORD = os.getenv("E2E_USER_PASSWORD") or _fail("E2E_USER_PASSWORD env var is required")
 
 
 def admin_token() -> str:

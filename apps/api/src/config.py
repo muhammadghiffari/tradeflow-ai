@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # ── Application ───────────────────────────────────────────────────────────
     ENVIRONMENT: Literal["development", "staging", "production"] = "development"
     DEBUG: bool = False
-    SECRET_KEY: str = Field(..., min_length=32)
+    SECRET_KEY: SecretStr = Field(..., min_length=32)
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost"]
 
     # ── Database ──────────────────────────────────────────────────────────────
@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     # ── Supabase ──────────────────────────────────────────────────────────────
     SUPABASE_URL: str
     SUPABASE_ANON_KEY: str
-    SUPABASE_SERVICE_KEY: str
-    SUPABASE_JWT_SECRET: str
+    SUPABASE_SERVICE_KEY: SecretStr
+    SUPABASE_JWT_SECRET: SecretStr
 
     # ── Keycloak 26 — SOLE auth provider (Invariant #4) ───────────────────────
     KEYCLOAK_SERVER_URL: str
@@ -75,7 +75,7 @@ class Settings(BaseSettings):
     CEISA_CLIENT_SECRET: SecretStr = ""  # type: ignore[assignment]
     CEISA_REQUEST_TIMEOUT_SECONDS: int = 30
     CEISA_POLL_INTERVAL_SECONDS: int = 30
-    CEISA_AES_KEY: str = ""  # AES-256-GCM key for payload encryption (base64)
+    CEISA_AES_KEY: SecretStr = ""  # type: ignore[assignment]  # AES-256-GCM key for payload encryption (base64)
 
     # ── Blockchain ────────────────────────────────────────────────────────────
     ENABLE_BLOCKCHAIN: bool = True
@@ -135,6 +135,7 @@ class Settings(BaseSettings):
     # ── Validation rules ──────────────────────────────────────────────────────
     VALIDATION_RULES_PATH: str = "packages/db/validation_rules.json"
     CARRIER_PROFILES_PATH: str = "packages/db/carrier_profiles.json"
+    XGBOOST_MODEL_PATH: str = "models/rejection_predictor.json"
 
     # ── Adaptive learning / drift ─────────────────────────────────────────────
     RETRAIN_MIN_NEW_SAMPLES: int = 100

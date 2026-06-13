@@ -19,13 +19,16 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from ..state import DeclarationState
 from ..validators.rule_engine import get_rules
+try:
+    from ....api.src.config import settings as api_settings  # type: ignore
+except Exception:
+    api_settings = None
 
 logger = logging.getLogger("agents.risk")
 
@@ -162,7 +165,11 @@ def _build_feature_vector(state: DeclarationState, crs: dict) -> dict[str, float
 
 def _predict_xgboost(features: dict[str, float]) -> float:
     """Try XGBoost prediction; fall back to rule-based."""
-    model_path = Path(os.environ.get("XGBOOST_MODEL_PATH", "models/rejection_predictor.json"))
+    default_path = "models/rejection_predictor.json"
+    if api_settings is not None:
+        model_path = Path(api_settings.XGBOOST_MODEL_PATH)
+    else:
+        model_path = Path(default_path)
     if model_path.exists():
         try:
             import xgboost as xgb

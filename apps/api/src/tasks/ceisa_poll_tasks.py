@@ -131,7 +131,7 @@ async def _retrain_async() -> dict:
     dtrain = xgb.DMatrix(X, label=y)
     model = xgb.train({"objective": "binary:logistic", "eta": 0.1, "max_depth": 4}, dtrain, 100)
 
-    path = os.environ.get("XGBOOST_MODEL_PATH", "models/rejection_predictor.json")
+    path = getattr(settings, "XGBOOST_MODEL_PATH", "models/rejection_predictor.json")
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     model.save_model(path)
     logger.info(f"XGBoost retrained: {len(data)} samples → {path}")

@@ -37,7 +37,7 @@ def _encrypt_payload(data: dict) -> dict | str:
     if not settings.CEISA_AES_KEY:
         return data
 
-    key = base64.b64decode(settings.CEISA_AES_KEY)
+    key = base64.b64decode(settings.CEISA_AES_KEY.get_secret_value())
     aesgcm = AESGCM(key)
     nonce = os.urandom(12)
     plaintext = json.dumps(data).encode()
