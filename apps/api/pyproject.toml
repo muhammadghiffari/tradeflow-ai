@@ -5,96 +5,100 @@ description = "TradeFlow AI — FastAPI Backend"
 requires-python = ">=3.13"
 dependencies = [
     # Web framework
-    "fastapi==0.115.6",
-    "uvicorn[standard]==0.34.0",
-    "python-multipart==0.0.20",
+    "fastapi>=0.115.6",
+    "uvicorn[standard]>=0.34.0",
+    "python-multipart>=0.0.20",
+    "slowapi>=0.1.9",  # Rate limiting
 
     # Config & validation
-    "pydantic==2.10.6",
-    "pydantic-settings==2.7.1",
+    "pydantic>=2.10.6",
+    "pydantic-settings>=2.7.1",
 
     # Auth — Keycloak JWT validation
-    "python-jose[cryptography]==3.3.0",
-    "httpx==0.28.1",
+    "python-jose[cryptography]>=3.3.0",
+    "httpx>=0.28.1",
 
     # Database
-    "asyncpg==0.30.0",
-    "sqlalchemy[asyncio]==2.0.40",
-    "supabase==2.13.0",
+    "asyncpg>=0.30.0",
+    "sqlalchemy[asyncio]>=2.0.40",
+    "supabase>=2.13.0",
 
     # Storage
-    "boto3==1.37.8",         # MinIO (S3-compatible)
-    "minio==7.2.13",
+    "boto3>=1.37.8",         # MinIO (S3-compatible)
+    "minio>=7.2.13",
+    "python-magic>=0.4.27",  # File type validation
 
     # Task queue
-    "celery==5.5.0",
-    "kombu==5.5.0",
-    "redis==5.2.1",
+    "celery>=5.5.0",
+    "kombu>=5.5.2",
+    "redis>=5.2.1",
 
     # AI / LLM
-    "google-generativeai==0.8.5",
-    "langchain-google-genai==2.1.0",
-    "langgraph==0.3.18",
-    "langgraph-checkpoint-redis==0.0.6",
-    "langsmith==0.3.11",
-    "openai==1.58.1",         # text-embedding-3-small
+    "google-generativeai>=0.8.5",
+    "langchain-google-genai>=2.1.0",
+    "langgraph>=0.3.18",
+    "langgraph-checkpoint-redis>=0.0.6",
+    "langsmith>=0.3.11",
+    "openai>=1.58.1",         # text-embedding-3-small
 
     # OCR & document processing
-    "paddleocr==2.9.1",
-    "paddlepaddle==2.6.2",
-    "pymupdf==1.25.3",
-    "pdfplumber==0.11.4",
-    "openpyxl==3.2.0",
-    "opencv-python-headless==4.11.0.86",
-    "pillow==11.1.0",
-    "lingua-language-detector==2.0.2",
+    "paddleocr>=2.9.1",
+    "paddlepaddle>=2.6.2",
+    "pymupdf>=1.25.3",
+    "pdfplumber>=0.11.4",
+    "openpyxl>=3.1.0",
+    "opencv-python-headless>=4.11.0.86",
+    "pillow>=11.1.0",
+    "lingua-language-detector>=2.0.2",
 
     # ML
-    "xgboost==2.1.4",
-    "scikit-learn==1.6.1",
-    "joblib==1.4.2",
-    "numpy==2.2.3",
-    "pandas==2.2.3",
+    "xgboost>=2.1.4",
+    "scikit-learn>=1.6.1",
+    "joblib>=1.4.2",
+    "numpy>=2.2.3",
+    "pandas>=2.2.3",
 
     # Vector store
-    "chromadb==0.6.3",
+    "chromadb>=0.6.3",
 
     # Azure DI (fallback OCR)
-    "azure-ai-documentintelligence==1.0.0",
-    "azure-core==1.32.0",
+    "azure-ai-documentintelligence>=1.0.0",
+    "azure-core>=1.32.0",
 
     # Blockchain
-    "web3==7.8.0",
-    "eth-account==0.13.4",
+    "web3>=7.8.0",
+    "eth-account>=0.13.4",
 
     # Notifications
-    "resend==2.7.0",
+    "resend>=2.7.0",
 
     # Observability
-    "sentry-sdk[fastapi]==2.20.0",
-    "opentelemetry-sdk==1.30.0",
-    "opentelemetry-instrumentation-fastapi==0.51b0",
-    "opentelemetry-instrumentation-celery==0.51b0",
-    "prometheus-fastapi-instrumentator==7.0.2",
+    "sentry-sdk[fastapi]>=2.20.0",
+    "opentelemetry-sdk>=1.30.0",
+    "opentelemetry-instrumentation-fastapi>=0.51b0",
+    "opentelemetry-instrumentation-celery>=0.51b0",
+    "opentelemetry-instrumentation-httpx>=0.51b0",
+    "opentelemetry-instrumentation-redis>=0.51b0",
+    "prometheus-fastapi-instrumentator>=7.0.2",
 
     # Utilities
-    "circuitbreaker==2.0.0",
-    "cryptography==44.0.0",
-    "python-dateutil==2.9.0",
-    "pytz==2025.1",
-    "tenacity==9.0.0",
-    "structlog==24.4.0",
+    "circuitbreaker>=2.0.0",
+    "cryptography>=44.0.0",
+    "python-dateutil>=2.9.0",
+    "pytz>=2025.1",
+    "tenacity>=9.0.0",
+    "structlog>=24.4.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest==8.3.4",
-    "pytest-asyncio==0.25.3",
-    "pytest-cov==6.0.0",
-    "httpx==0.28.1",
-    "ruff==0.9.4",
-    "mypy==1.14.1",
-    "factory-boy==3.3.1",
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.28.1",
+    "ruff>=0.9.4",
+    "mypy>=1.14.1",
+    "factory-boy>=3.3.1",
 ]
 
 [build-system]
@@ -115,3 +119,6 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]

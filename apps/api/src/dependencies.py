@@ -7,16 +7,21 @@ PRD §4 Decision 2: Keycloak 26 is the ONLY auth provider.
 
 from __future__ import annotations
 
-import structlog
-from typing import Annotated
 from functools import lru_cache
+from typing import Annotated
+import time
 
 import httpx
+import structlog
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from jose.exceptions import ExpiredSignatureError
-from supabase import AsyncClient, acreate_client
+try:
+    from supabase import AsyncClient, acreate_client
+except Exception:  # pragma: no cover - optional in lightweight test environments
+    AsyncClient = None
+    acreate_client = None
 
 from .config import settings
 
@@ -28,6 +33,11 @@ _supabase_client: AsyncClient | None = None
 
 async def init_supabase() -> None:
     global _supabase_client
+    if acreate_client is None:
+        log.info("Supabase client not available in this environment; skipping initialization")
+        _supabase_client = None
+        return
+
     _supabase_client = await acreate_client(
         settings.SUPABASE_URL,
         settings.SUPABASE_SERVICE_KEY,  # Service key for server-side ops
@@ -50,15 +60,24 @@ def get_supabase() -> AsyncClient:
 
 # ── Keycloak JWKS cache ───────────────────────────────────────────────────────
 _keycloak_jwks: dict | None = None
+_keycloak_jwks_time: float = 0
+KEYCLOAK_JWKS_TTL = 3600  # Refresh every hour
 
 
-@lru_cache(maxsize=1)
 def get_keycloak_jwks() -> dict:
-    """Fetch Keycloak JWKS synchronously (cached — refreshed on startup)."""
-    with httpx.Client() as client:
-        response = client.get(settings.KEYCLOAK_JWKS_URL)
-        response.raise_for_status()
-        return response.json()
+    """Fetch Keycloak JWKS with TTL-based caching (refresh every hour)."""
+    global _keycloak_jwks, _keycloak_jwks_time
+    now = time.time()
+    
+    if not _keycloak_jwks or (now - _keycloak_jwks_time) > KEYCLOAK_JWKS_TTL:
+        with httpx.Client() as client:
+            response = client.get(settings.KEYCLOAK_JWKS_URL)
+            response.raise_for_status()
+            _keycloak_jwks = response.json()
+            _keycloak_jwks_time = now
+            log.info("Refreshed Keycloak JWKS cache")
+    
+    return _keycloak_jwks
 
 
 # ── JWT Bearer scheme ─────────────────────────────────────────────────────────
@@ -79,6 +98,7 @@ class CurrentUser:
         raw_token: str,
     ) -> None:
         self.id = sub
+        self.sub = sub
         self.email = email
         self.full_name = full_name
         self.roles = roles
@@ -158,7 +178,7 @@ async def get_current_user(
     except Exception:
         # Profile not yet created — use JWT claims as fallback
         tier = "sme"
-        company_id = None
+        company_id = sub  # Fallback to user's own ID so they can act as their own company
         full_name = payload.get("name", "")
         email = payload.get("email", "")
 

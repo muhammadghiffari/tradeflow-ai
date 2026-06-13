@@ -125,6 +125,26 @@ class BlockchainService:
         self._w3 = w3
         return w3
 
+    def _fee_params(self, w3: Web3) -> dict[str, int]:
+        """
+        Build EIP-1559 fee params with caps so Polygon gas spikes do not
+        silently turn an audit anchor into an expensive transaction.
+        """
+        max_fee_cap = w3.to_wei(settings.POLYGON_MAX_FEE_GWEI, "gwei")
+        priority_cap = w3.to_wei(settings.POLYGON_MAX_PRIORITY_FEE_GWEI, "gwei")
+        try:
+            latest = w3.eth.get_block("latest")
+            base_fee = int(latest.get("baseFeePerGas") or w3.eth.gas_price)
+            priority_fee = min(int(getattr(w3.eth, "max_priority_fee", priority_cap)), priority_cap)
+            max_fee = min((base_fee * 2) + priority_fee, max_fee_cap)
+            if max_fee <= priority_fee:
+                max_fee = min(priority_fee * 2, max_fee_cap)
+            return {"maxFeePerGas": max_fee, "maxPriorityFeePerGas": priority_fee}
+        except Exception as exc:
+            fallback_gas_price = min(int(w3.eth.gas_price), max_fee_cap)
+            log.warning("Falling back to legacy gas price", error=str(exc), gas_price=fallback_gas_price)
+            return {"gasPrice": fallback_gas_price}
+
     async def anchor(
         self,
         batch_id: str,
@@ -168,17 +188,24 @@ class BlockchainService:
             account = w3.eth.account.from_key(settings.BLOCKCHAIN_PRIVATE_KEY)
             nonce = w3.eth.get_transaction_count(account.address)
 
-            tx = contract.functions.anchor(
+            tx_func = contract.functions.anchor(
                 merkle_root_bytes,
                 content_hash_bytes,
                 ipfs_cid,
-            ).build_transaction({
+            )
+            tx_params = {
                 "from": account.address,
                 "nonce": nonce,
-                "gas": 200_000,
-                "maxFeePerGas": w3.to_wei("30", "gwei"),
-                "maxPriorityFeePerGas": w3.to_wei("2", "gwei"),
-            })
+                "gas": settings.POLYGON_ANCHOR_GAS_LIMIT,
+                **self._fee_params(w3),
+            }
+            try:
+                estimated_gas = tx_func.estimate_gas({"from": account.address})
+                tx_params["gas"] = min(int(estimated_gas * 1.2), settings.POLYGON_ANCHOR_GAS_LIMIT)
+            except Exception as exc:
+                log.warning("Gas estimation failed; using configured gas limit", error=str(exc))
+
+            tx = tx_func.build_transaction(tx_params)
 
             signed = account.sign_transaction(tx)
             tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)

@@ -1,0 +1,42 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  backend-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Install backend dependencies
+        run: uv pip install --system -e "apps/api[dev]"
+      - name: Start integration services
+        run: |
+          docker compose -f docker-compose.integration.yml up -d
+
+      - name: Wait for integration services
+        run: |
+          set -e
+          for i in $(seq 1 60); do
+            echo "Waiting for integration service readiness attempt $i..."
+            if curl -fsS http://localhost:8002/api/v1/heartbeat >/dev/null 2>&1 \
+              && curl -fsS http://localhost:9000/minio/health/ready >/dev/null 2>&1 \
+              && docker compose -f docker-compose.integration.yml exec -T redis redis-cli ping >/dev/null 2>&1; then
+              echo "Integration services are ready"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Integration services failed to become ready in time."
+          docker compose -f docker-compose.integration.yml ps
+          exit 1
+
+      - name: Run Python integration tests
+        run: uv run pytest -m integration apps/api/tests/integration -q
+      - name: Teardown integration services
+        if: always()
+        run: docker compose -f docker-compose.integration.yml down

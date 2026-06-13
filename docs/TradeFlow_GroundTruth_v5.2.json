@@ -1,0 +1,383 @@
+{
+  "Hapag_Filled_1": {
+    "file": "Hapag_Filled_1.pdf",
+    "carrier": "Hapag-Lloyd",
+    "scac": "HLCU",
+    "pages": 1,
+    "processing_route": "STANDARD",
+    "watermarks": [
+      "DRAFT",
+      "ORIGINAL"
+    ],
+    "date_formats_found": [
+      "DD/MON/YYYY"
+    ],
+    "ceisa_fields": {
+      "nomorBl": "HLCULIV130219209",
+      "carrier_ref": "30221404",
+      "namaKapal": "RIO DE LA PLATA",
+      "voyageNumber": "3208",
+      "kodePelabuhanMuat": "GBTIL",
+      "kodePelabuhanBongkar": "INNSA",
+      "place_of_receipt": "8 OBERON CLOSE, CV34 6XF WARWICK, GREAT BRITAIN",
+      "place_of_delivery": "DELHI",
+      "jumlahKemasan": 152,
+      "kodeJenisKemasan": "PK",
+      "container_no_raw": "HLXU 2382861",
+      "container_no_normalized": "HLXU2382861",
+      "seal_no": "MLGB2683941",
+      "uraian": "USED HOUSEHOLD & PERSONAL EFFECTS",
+      "beratKotor": 2500.0,
+      "jumlah_kontainer": 1,
+      "movement": "FCL/FCL",
+      "tglBl_raw": "27/FEB/2013",
+      "tglBl": "2013-02-27",
+      "incoterm": "CFR",
+      "freight_terms": "FREIGHT PREPAID",
+      "place_of_issue": "LIVERPOOL",
+      "num_original_bl": 3,
+      "hs_code": null
+    },
+    "ocr_challenges": [
+      "DRAFT watermark diagonal",
+      "ORIGINAL watermark overlapping cargo section",
+      "Two-column layout reorders text extraction",
+      "No HS code in B/L",
+      "Container number space: HLXU 2382861 -> HLXU2382861"
+    ],
+    "insw_flag": false,
+    "cdp_relevant": false
+  },
+  "Hapag_Filled_2": {
+    "file": "Hapag_Filled_2.pdf",
+    "carrier": "Hapag-Lloyd",
+    "scac": "HLCU",
+    "pages": 2,
+    "processing_route": "STANDARD",
+    "watermarks": [
+      "DRAFT",
+      "ORIGINAL"
+    ],
+    "date_formats_found": [
+      "MON-DD-YYYY"
+    ],
+    "ceisa_fields": {
+      "nomorBl": "HLCUDX2120201403",
+      "namaShipper": "K G INTERNATIONAL FZCO, P.O.BOX 17122, JEBEL ALI, DUBAI, UAE",
+      "namaKonsignee": "AGROPIESE TGR GRUP SRL, 271/7 MUNCESHTI STR., CHISINAU, MD-2044, REPUBLIC OF MOLDOVA",
+      "namaKapal": "CAP VERDE",
+      "voyageNumber": "2304",
+      "kodePelabuhanMuat": "AEJEA",
+      "kodePelabuhanBongkar": "UAODS",
+      "jumlahKemasan": 17,
+      "kodeJenisKemasan": "PL",
+      "container_no_normalized": "CPSU1311627",
+      "seal_no": "BSL522550",
+      "uraian": "BEARINGS & BEARING UNITS",
+      "hs_codes_raw": "8482.10.00,8482.20.00,8482.50.00,8482.80.00",
+      "hs_codes_normalized": [
+        "84821000",
+        "84822000",
+        "84825000",
+        "84828000"
+      ],
+      "beratKotor": 12215.0,
+      "beratBersih": 11105.0,
+      "measurement_cbm": 12.215,
+      "jumlah_kontainer": 1,
+      "movement": "FCL/FCL",
+      "tglBl_raw": "FEB-XX-2012",
+      "tglBl": "2012-02-20",
+      "freight_terms": "PORT CHARGE ORIGIN PREPAID; SEAFREIGHT+ADDITIONALS COLLECT",
+      "place_of_issue": "DUBAI",
+      "num_original_bl": 3
+    },
+    "ocr_challenges": [
+      "3 pages: main + continuation + demurrage terms page",
+      "Page 3 is demurrage/terms only - ignore",
+      "HS in dot format: 8482.10.00 -> 84821000",
+      "Multiple HS codes comma-separated",
+      "Weight unit KGM not KGS",
+      "Day redacted in date: FEB-XX-2012"
+    ],
+    "insw_flag": false,
+    "cdp_relevant": false
+  },
+  "MSC_Filled_1": {
+    "file": "MSC_Filled_1.pdf",
+    "carrier": "MSC Mediterranean Shipping",
+    "scac": "MSCU",
+    "pages": 1,
+    "processing_route": "STANDARD",
+    "watermarks": [
+      "ORIGINAL"
+    ],
+    "date_formats_found": [
+      "DD/MM/YYYY"
+    ],
+    "ceisa_fields": {
+      "nomorBl": null,
+      "container_nos": [
+        "SCUL3875766",
+        "TRIU8051100"
+      ],
+      "tglBl": "2016-09-14"
+    },
+    "ocr_challenges": [
+      "Document largely unfilled - fields not populated",
+      "Use for DAPT only, not supervised fine-tuning",
+      "MSC: BOOKING REF + PORT OF DISCHARGE at top-right",
+      "PARTICULARS header text is spaced-out"
+    ],
+    "use_for_training": "DAPT_ONLY",
+    "insw_flag": false,
+    "cdp_relevant": false
+  },
+  "Maersk_Filled_1": {
+    "file": "Maersk_Filled_1.pdf",
+    "carrier": "Maersk Line",
+    "scac": "MAEU",
+    "pages": 1,
+    "processing_route": "FAST_PATH",
+    "watermarks": [
+      "ORIGINAL"
+    ],
+    "date_formats_found": [
+      "DD-MM-YYYY"
+    ],
+    "ceisa_fields": {
+      "nomorBl": "MAEU-AT-06324",
+      "nomorBl_normalized": "MAEUАТ06324",
+      "booking_no": "BK-8821147-GZ",
+      "namaShipper": "GUANGZHOU BLUEWAVE MARINE CO., LTD",
+      "namaKonsignee": "Ature Energy Limited, 9 Ikoyi Avenue, Ikoyi, Lagos, Nigeria",
+      "namaKapal": "NMV MAERSK COPENHAGEN",
+      "voyageNumber": "246N",
+      "place_of_receipt": "Guangzhou Export Terminal",
+      "kodePelabuhanMuat": "CNGZH",
+      "kodePelabuhanBongkar": "NGAPP",
+      "place_of_delivery": "Onne Port Terminal (FOT)",
+      "jumlah_kontainer": 12,
+      "beratKotor_raw": "128,500 kg",
+      "beratKotor": 128500.0,
+      "measurement_cbm": 320.0,
+      "tglBl_raw": "03-06-2024",
+      "tglBl": "2024-06-03",
+      "freight_terms": "PREPAID",
+      "place_of_issue": "Guangzhou, China",
+      "num_original_bl": 12,
+      "hs_code": null
+    },
+    "ocr_challenges": [
+      "BL number with dashes: MAEU-AT-06324",
+      "Weight comma separator: 128,500 kg -> 128500.0",
+      "DD-MM-YYYY vs MM-DD-YYYY ambiguity",
+      "12 containers in structured table - best tabular test",
+      "ORIGINAL watermark over cargo table"
+    ],
+    "insw_flag": false,
+    "cdp_relevant": false
+  },
+  "Evergreen_Filled_1": {
+    "file": "Evergreen_Filled_1.pdf",
+    "carrier": "Evergreen Line",
+    "scac": "EGLV",
+    "pages": 2,
+    "processing_route": "STANDARD",
+    "watermarks": [
+      "ORIGINAL",
+      "PROOFREAD",
+      "READ"
+    ],
+    "date_formats_found": [
+      "DD.MM.YYYY"
+    ],
+    "ceisa_fields": {
+      "nomorBl": "EGLV100150418716",
+      "namaShipper": "ADANI ENTERPRISES LIMITED, ADANI CORPORATE HOUSE, ADANI SHANTIGRAM, SG HIGHWAY, AHMEDABAD, GUJARAT 382421 INDIA",
+      "namaKonsignee": "PT. KEMINDO CAO RESOURCES, THE SUITES TOWER LANTAI 3, SUITE 3 & 5, JALAN BOULEVARD PANTAI INDAH KAPUK, KEL. KAMAL MUARA, KEC. PENJARINGAN, KOTA ADM. JAKARTA UTARA, PROP. DKI JAKARTA",
+      "notify_party": "PT. KEMINDO CAO RESOURCES (same)",
+      "namaKapal": "KMTC DUBAI",
+      "voyageNumber": "2105E",
+      "place_of_receipt": "MUNDRA, INDIA",
+      "kodePelabuhanMuat": "INMUN",
+      "kodePelabuhanBongkar": "IDJKT",
+      "place_of_delivery": "JAKARTA, INDONESIA",
+      "jumlah_kontainer": 12,
+      "kodeJenisKemasan": "BG",
+      "jumlahKemasan": 12000,
+      "uraian": "CAUSTIC SODA FLAKES",
+      "hs_code": "28151110",
+      "un_number": "1813",
+      "dangerous_goods_class": "8",
+      "beratKotor_raw": "301.920 MTS",
+      "beratKotor": 301920.0,
+      "beratBersih": 300000.0,
+      "measurement_cbm": 300.0,
+      "tglBl_raw": "DATE:18.09.2021",
+      "tglBl": "2021-09-18",
+      "freight_terms": "OCEAN FREIGHT PREPAID",
+      "movement": "FCL/FCL O/O",
+      "num_original_bl": 3
+    },
+    "ocr_challenges": [
+      "CRITICAL: Indonesian consignee (PT. KEMINDO CAO RESOURCES, Jakarta)",
+      "CRITICAL: Port of Discharge = JAKARTA (IDJKT) - CDP-relevant",
+      "CRITICAL: HS 28151110 = Caustic Soda = UN1813 Class 8 DG -> INSW lartas!",
+      "THREE watermarks: ORIGINAL + PROOFREAD + READ",
+      "Numbered field system (1-33) unique to Evergreen",
+      "2 pages: main + attachment container list",
+      "Weight in MTS: 301.920 MTS -> 301920 KGS",
+      "Indonesian address format (Kelurahan, Kecamatan, Kota)",
+      "Barcode/QR in footer"
+    ],
+    "insw_flag": true,
+    "insw_reason": "Caustic Soda HS 28151110 - UN 1813 Class 8 Dangerous Goods require INSW DG permit",
+    "cdp_relevant": true,
+    "priority": "HIGHEST"
+  },
+  "Evergreen_Filled_2": {
+    "file": "Evergreen_Filled_2.pdf",
+    "carrier": "Evergreen Line",
+    "scac": "EGLV",
+    "pages": 2,
+    "processing_route": "STANDARD",
+    "watermarks": [
+      "ORIGINAL",
+      "PROOFREAD",
+      "READ"
+    ],
+    "date_formats_found": [
+      "MON.DD,YYYY"
+    ],
+    "ceisa_fields": {
+      "nomorBl": "EGLV235500185391",
+      "namaShipper": "PETROVIETNAM FERTILIZER AND CHEMICALS CORPORATION, ON BEHALF OF AMEROPA ASIA PTE LTD",
+      "namaKonsignee": "TO THE ORDER OF ASTA CHEMICALS SDN BHD, KUANTAN PAHANG DARUL MALAYSIA",
+      "namaKapal": "CAPE NORVIEGA",
+      "voyageNumber": "0175-028S",
+      "kodePelabuhanMuat": "VNSGN",
+      "kodePelabuhanBongkar": "MYKUA",
+      "uraian": "PRILLED UREA",
+      "jumlahKemasan": 6000,
+      "beratKotor": 301050.0,
+      "beratBersih": 300000.0,
+      "measurement_cbm": 375.0,
+      "tglBl_raw": "APR.15,2015",
+      "tglBl": "2015-04-15",
+      "freight_terms": "OCEAN FREIGHT PREPAID",
+      "jumlah_kontainer": 15,
+      "num_original_bl": 3
+    },
+    "ocr_challenges": [
+      "Date MON.DD,YYYY format (APR.15,2015)",
+      "Negotiable B/L: consignee is 'To the Order of'",
+      "2 pages + 15-container attachment list"
+    ],
+    "insw_flag": false,
+    "cdp_relevant": false
+  },
+  "Evergreen_Filled_3": {
+    "file": "Evergreen_Filled_3.pdf",
+    "carrier": "Evergreen Line",
+    "scac": "EGLV",
+    "pages": 2,
+    "processing_route": "STANDARD",
+    "watermarks": [
+      "ORIGINAL",
+      "PROOFREAD",
+      "READ"
+    ],
+    "ceisa_fields": {
+      "nomorBl": "EGLV560500119061",
+      "namaShipper": "RASCHIG GMBH, MUNDENHEIMER STR. 100, 67061 LUDWIGSHAFEN, GERMANY",
+      "namaKonsignee": "TOYO ENGINEERING INDIA PVT LTD, LNG REGASIFICATION PROJECT, SOUTH PORT MUNDRA, NAVINAL ISLAND, MUNDRA, KUTCH, GUJARAT 370421 INDIA",
+      "forwarding_agent": "RHENUS FREIGHT LOGISTICS GMBH & CO. KG",
+      "namaKapal": "HANJIN ROTTERDAM",
+      "voyageNumber": "0011E",
+      "kodePelabuhanMuat": "DEHAM",
+      "kodePelabuhanBongkar": "INMUN",
+      "uraian": "RASCHIG SUPER-RING (industrial packing rings)",
+      "beratKotor": 11603.0,
+      "jumlah_kontainer": 2,
+      "movement": "FCL/FCL D/O",
+      "freight_terms": "OCEAN FREIGHT PREPAID",
+      "num_original_bl": 3,
+      "export_ref": "IHGH MHG2115040094",
+      "hs_code": null
+    },
+    "ocr_challenges": [
+      "2 pages: main + attachment with detailed per-item weight breakdown",
+      "Industrial components with specialized descriptions",
+      "3 watermarks"
+    ],
+    "insw_flag": false,
+    "cdp_relevant": false
+  },
+  "Cordelia_Filled_1": {
+    "file": "Cordelia_Filled_1.pdf",
+    "carrier": "Cordelia Container Shipping Line",
+    "scac": "CSLU",
+    "pages": 2,
+    "processing_route": "STANDARD",
+    "watermarks": [
+      "DRAFT",
+      "ORIGINAL"
+    ],
+    "date_formats_found": [
+      "DD-MON-YYYY"
+    ],
+    "ceisa_fields": {
+      "nomorBl": "CSX23SHKMUN017829",
+      "namaShipper": "FOSHAN WEN ZHI YUAN TRADING CO.,LTD., GUICHENG, NANHAI DISTRICT, FOSHAN, CHINA",
+      "namaKonsignee": "S.S ENTERPRISES, HOUSE NO 24/25, 1ST FLOOR, BLOCK B, POCKET 6, ROHINI SECTOR11, NORTH WEST DELHI, DELHI 110085",
+      "consignee_gst": "07ANGPG0117R1ZX",
+      "consignee_iec": "ANGPG0117R",
+      "namaKapal": "GFS GISELLE",
+      "voyageNumber": "2304W",
+      "place_of_receipt": "SHEKOU, CHINA",
+      "kodePelabuhanMuat": "CNSHK",
+      "kodePelabuhanBongkar": "INMUN",
+      "place_of_delivery": "MUNDRA, INDIA",
+      "containers": [
+        {
+          "no": "TGCU2288744",
+          "seal": "CSX136470",
+          "qty": 7,
+          "unit": "PACKAGES",
+          "gw_kg": 27392.0,
+          "cbm": 6.48
+        },
+        {
+          "no": "TGCU2288934",
+          "seal": "CSX136479",
+          "qty": 6,
+          "unit": "PACKAGES",
+          "gw_kg": 26114.0,
+          "cbm": 6.08
+        }
+      ],
+      "uraian": "COLD ROLLED STAINLESS STEEL COIL GRADE J3",
+      "hs_code": "72193590",
+      "beratKotor": 53506.0,
+      "measurement_cbm": 12.56,
+      "jumlah_kontainer": 2,
+      "tglBl_raw": "29-MAR-2023",
+      "tglBl": "2023-03-29",
+      "freight_terms": "FREIGHT PREPAID",
+      "place_of_issue": "SHEKOU",
+      "num_original_bl": 3,
+      "free_days_detention": 14
+    },
+    "ocr_challenges": [
+      "Page 2 is 20-clause T&C - detect and IGNORE",
+      "T&C detection: starts with '1. DEFINITIONS' or 'DEFINITIONS'",
+      "DRAFT watermark large center page",
+      "Lesser-known carrier: no pre-existing model knowledge",
+      "GST/IEC/PAN in consignee (not NPWP/NIB format)",
+      "Date: 29-MAR-2023 -> 2023-03-29"
+    ],
+    "insw_flag": false,
+    "cdp_relevant": false
+  }
+}

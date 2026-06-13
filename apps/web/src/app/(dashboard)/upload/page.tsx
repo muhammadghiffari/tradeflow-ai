@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Upload, FileText, X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ const INITIAL_SLOTS: FileSlot[] = [
 
 export default function UploadPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [slots, setSlots] = useState<FileSlot[]>(INITIAL_SLOTS);
   const [dragging, setDragging] = useState<DocSlot | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -60,7 +62,14 @@ export default function UploadPage() {
       const form = new FormData();
       slots.forEach(({ file }) => { if (file) form.append("files", file); });
 
-      const res = await fetch("/api/v1/batches", { method: "POST", body: form });
+      // @ts-ignore — accessToken is added via NextAuth callbacks
+      const accessToken = session?.accessToken;
+      const headers: Record<string, string> = {};
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`;
+      }
+
+      const res = await fetch("/api/v1/batches", { method: "POST", body: form, headers });
       if (!res.ok) throw new Error(await res.text());
       const { batch_id } = await res.json();
 

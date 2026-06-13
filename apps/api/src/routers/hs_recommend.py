@@ -3,9 +3,10 @@ TradeFlow AI — HS Recommendation Router
 """
 
 from typing import Annotated, Any
+
+import structlog
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-import structlog
 
 from ..dependencies import CurrentUser, get_current_user
 

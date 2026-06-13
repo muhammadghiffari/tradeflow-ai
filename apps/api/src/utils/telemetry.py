@@ -2,39 +2,38 @@
 TradeFlow AI — OpenTelemetry & Prometheus Observability Initialization
 """
 
-from opentelemetry import trace, metrics
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader, ConsoleMetricExporter
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.celery import CeleryInstrumentor
-from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-from opentelemetry.instrumentation.redis import RedisInstrumentor
-
 import structlog
-from prometheus_client import make_asgi_app
 from fastapi import FastAPI
-import os
+try:
+    from opentelemetry import metrics, trace
+    from opentelemetry.instrumentation.celery import CeleryInstrumentor
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+    from opentelemetry.instrumentation.redis import RedisInstrumentor
+    from opentelemetry.sdk.metrics import MeterProvider
+    from opentelemetry.sdk.metrics.export import ConsoleMetricExporter, PeriodicExportingMetricReader
+    from opentelemetry.sdk.resources import Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+    OPENTELEMETRY_AVAILABLE = True
+except Exception:  # pragma: no cover - optional observability
+    OPENTELEMETRY_AVAILABLE = False
+
+from ..config import settings
 
 log = structlog.get_logger()
 
 def setup_telemetry(app: FastAPI) -> None:
     """Initialize OpenTelemetry tracing and Prometheus metrics."""
-    
-    enabled = os.getenv("OTEL_ENABLED", "false").lower() == "true"
-    if not enabled:
-        log.info("OpenTelemetry is disabled. Set OTEL_ENABLED=true to enable.")
-        # We still mount prometheus for basic metrics
-        metrics_app = make_asgi_app()
-        app.mount("/metrics", metrics_app)
+    enabled = settings.OTEL_ENABLED
+    if not enabled or not OPENTELEMETRY_AVAILABLE:
+        log.info("OpenTelemetry is disabled or not installed. Skipping telemetry setup.")
         return
 
     # Setup Tracing
     resource = Resource.create({"service.name": "tradeflow-api", "service.version": "1.0.0"})
     tracer_provider = TracerProvider(resource=resource)
-    
+
     # In production, use OTLPSpanExporter to send to Jaeger/Tempo
     # For now, we export to console for debug, but only if trace level is high
     exporter = ConsoleSpanExporter()
@@ -52,9 +51,5 @@ def setup_telemetry(app: FastAPI) -> None:
     CeleryInstrumentor().instrument()
     HTTPXClientInstrumentor().instrument()
     RedisInstrumentor().instrument()
-
-    # Mount Prometheus
-    metrics_app = make_asgi_app()
-    app.mount("/metrics", metrics_app)
 
     log.info("OpenTelemetry & Prometheus instrumentation initialized.")

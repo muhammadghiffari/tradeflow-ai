@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   lint-backend:
@@ -16,7 +16,7 @@ jobs:
         with:
           version: "0.4.x"
       - name: Install backend deps
-        run: uv pip install --system -r apps/api/pyproject.toml
+        run: uv pip install --system -e "apps/api[dev]"
       - name: Ruff check
         run: uv run ruff check apps/api packages/agents
       - name: Mypy strict check

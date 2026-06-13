@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 FROM node:22-alpine AS base
 
 # Install dependencies only when needed
@@ -7,8 +8,16 @@ WORKDIR /app
 COPY package.json turbo.json pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 # using corepack for pnpm
+ENV PNPM_CONFIG_FETCH_RETRIES=10 \
+    PNPM_CONFIG_FETCH_TIMEOUT=600000 \
+    PNPM_CONFIG_NETWORK_CONCURRENCY=1 \
+    PNPM_CONFIG_REGISTRY=https://registry.npmjs.org/ \
+    PNPM_STORE_PATH=/pnpm-store \
+    HTTP_PROXY= \
+    HTTPS_PROXY= \
+    NO_PROXY=localhost,127.0.0.1,registry.npmjs.org
 RUN corepack enable pnpm
-RUN pnpm install --frozen-lockfile=false
+RUN --mount=type=cache,target=/pnpm-store pnpm install --frozen-lockfile=false --store=/pnpm-store
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -51,4 +60,10 @@ CMD ["npm", "run", "start", "--prefix", "apps/web"]
 FROM base AS development
 WORKDIR /app
 RUN corepack enable pnpm
-CMD ["pnpm", "--filter", "web", "dev"]
+# Copy installed dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY . .
+WORKDIR /app/apps/web
+ENTRYPOINT []
+CMD ["pnpm", "dev"]

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Upload,
@@ -11,6 +12,7 @@ import {
   Settings,
   LogOut,
   Zap,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +21,7 @@ const navItems = [
   { href: "/upload",   icon: Upload,          label: "Upload Docs" },
   { href: "/batches",  icon: FileCheck2,       label: "Declarations" },
   { href: "/analytics",icon: BarChart3,        label: "Analytics" },
+  { href: "/simulator",icon: Activity,         label: "Simulator" },
   { href: "/audit",    icon: Shield,           label: "Audit Trail" },
   { href: "/settings", icon: Settings,         label: "Settings" },
 ];
@@ -66,7 +69,11 @@ export function Sidebar() {
             <p className="text-xs font-medium truncate">Dev Operator</p>
             <p className="text-[10px] text-muted-foreground truncate">operator@tradeflow.local</p>
           </div>
-          <button className="text-muted-foreground hover:text-foreground transition-colors">
+          <button 
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            title="Sign out"
+          >
             <LogOut className="h-3.5 w-3.5" />
           </button>
         </div>
