@@ -2,8 +2,10 @@
 Tests for AI node error handling
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from src.ai.nodes.extract import llm_extraction_node
 from src.ai.state import ExtractionGraphState
 
@@ -21,9 +23,9 @@ async def test_extraction_node_handles_missing_doc_fields():
             }
         ]
     )
-    
+
     result = await llm_extraction_node(state)
-    
+
     # Should mark document as error instead of crashing
     assert len(result["documents"]) == 1
     assert "error" in result["documents"][0]
@@ -37,9 +39,9 @@ async def test_extraction_node_handles_empty_documents():
         batch_id="test-batch",
         documents=[]
     )
-    
+
     result = await llm_extraction_node(state)
-    
+
     # Should return gracefully with no documents
     assert result["documents"] == []
     assert result["combined_data"] == {}
@@ -58,7 +60,7 @@ async def test_extraction_node_specific_exception_handling():
             }
         ]
     )
-    
+
     # Mock LLM to raise ValueError (expected)
     with patch("src.ai.nodes.extract.ChatGoogleGenerativeAI") as mock_llm:
         mock_instance = MagicMock()
@@ -87,7 +89,7 @@ async def test_extraction_node_reraises_unknown_exceptions():
             }
         ]
     )
-    
+
     # Mock LLM to raise unexpected exception
     with patch("src.ai.nodes.extract.ChatGoogleGenerativeAI") as mock_llm:
         mock_instance = MagicMock()
@@ -119,7 +121,7 @@ async def test_extraction_node_combines_data_correctly():
             }
         ]
     )
-    
+
     # Mock LLM responses
     with patch("src.ai.nodes.extract.ChatGoogleGenerativeAI") as mock_llm:
         mock_instance = MagicMock()
@@ -136,7 +138,7 @@ async def test_extraction_node_combines_data_correctly():
         mock_llm.return_value = mock_instance
 
         result = await llm_extraction_node(state)
-        
+
         # Combined data should have the last writer's value
         assert result["combined_data"]["importer_name"] == "Company B"
         assert result["combined_data"]["cif_value"] == 2000

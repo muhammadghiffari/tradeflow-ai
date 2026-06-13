@@ -2,9 +2,8 @@
 Tests for blockchain router authorization
 """
 
+
 import pytest
-from unittest.mock import AsyncMock
-from fastapi import HTTPException
 
 
 @pytest.mark.asyncio

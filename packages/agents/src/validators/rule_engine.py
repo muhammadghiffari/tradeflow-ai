@@ -20,7 +20,6 @@ from typing import Any
 from ..validators.field_validators import (
     validate_container_iso6346,
     validate_hs_8digit,
-    validate_iso_date,
     validate_nib_format,
     validate_npwp_checksum,
     validate_unlocode,

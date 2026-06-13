@@ -265,12 +265,18 @@ export default function BatchDetailPage() {
 
       {/* Action buttons */}
       <div className="flex items-center justify-between pt-2">
-        <button type="button" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10 transition-colors">
+        <button
+          type="button"
+          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10 transition-colors"
+        >
           <Shield className="h-4 w-4 text-purple-400" />
           View Blockchain Receipt
         </button>
         <div className="flex items-center gap-3">
-          <button type="button" className="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-2.5 text-sm text-red-400 hover:bg-red-500/20 transition-colors">
+          <button
+            type="button"
+            className="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-2.5 text-sm text-red-400 hover:bg-red-500/20 transition-colors"
+          >
             Reject
           </button>
           <button

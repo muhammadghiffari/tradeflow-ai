@@ -3,6 +3,7 @@ TradeFlow AI — Batch Processing Tasks (T-072)
 """
 from __future__ import annotations
 
+import contextlib
 import logging
 
 logger = logging.getLogger("tasks.batch")
@@ -14,9 +15,11 @@ def process_batch(batch_id: str) -> dict:
     Called by POST /api/v1/batches after file upload.
     """
     try:
-        from ..config import settings  # type: ignore
-        from packages.agents.src.graph import get_graph  # type: ignore
         import asyncio
+
+        from packages.agents.src.graph import get_graph  # type: ignore
+
+        from ..config import settings  # type: ignore
 
         graph = get_graph()
         config = {"configurable": {"thread_id": batch_id}}
@@ -98,7 +101,5 @@ def _mark_batch_failed(batch_id: str, error: str) -> None:
                 error[:500], batch_id,
             )
 
-    try:
+    with contextlib.suppress(Exception):
         asyncio.run(_update())
-    except Exception:
-        pass

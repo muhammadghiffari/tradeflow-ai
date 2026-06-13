@@ -23,9 +23,9 @@ def poll_active_batches() -> dict:
 
 
 async def _poll_async() -> dict:
-    from ..config import settings  # type: ignore
-    from ..db.database import get_async_session  # type: ignore
     from packages.agents.src.graph import get_graph  # type: ignore
+
+    from ..db.database import get_async_session  # type: ignore
 
     graph = get_graph()
     polled = 0
@@ -109,12 +109,13 @@ def retrain_xgboost() -> dict:
 
 
 async def _retrain_async() -> dict:
-    import numpy as np
-    import xgboost as xgb
     import os
 
-    from ..db.database import get_async_session  # type: ignore
+    import numpy as np
+    import xgboost as xgb
+
     from ..config import settings  # type: ignore
+    from ..db.database import get_async_session  # type: ignore
 
     async with get_async_session() as db:
         rows = await db.fetch(

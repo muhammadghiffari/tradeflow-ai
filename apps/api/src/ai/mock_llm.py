@@ -4,8 +4,8 @@ Returns predictable CEISAFields outputs so the LangGraph flow is repeatable.
 """
 from __future__ import annotations
 
-import asyncio
 from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -25,9 +25,9 @@ class DeterministicStructuredLLM:
             if isinstance(meta, dict):
                 ftype = meta.get('annotation')
             elif hasattr(meta, 'annotation'):
-                ftype = getattr(meta, 'annotation')
+                ftype = meta.annotation
             elif hasattr(meta, 'outer_type_'):
-                ftype = getattr(meta, 'outer_type_')
+                ftype = meta.outer_type_
             else:
                 ftype = None
 

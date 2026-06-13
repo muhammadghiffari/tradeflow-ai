@@ -17,6 +17,7 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+
 try:
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 except Exception:  # pragma: no cover - optional
@@ -84,7 +85,7 @@ def create_app() -> FastAPI:
         max_age=3600,
     )
     app.add_middleware(GZipMiddleware, minimum_size=1000)
-    
+
     # Rate limiting middleware (optional)
     try:
         from slowapi import Limiter

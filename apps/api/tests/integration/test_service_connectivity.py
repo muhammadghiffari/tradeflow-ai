@@ -1,9 +1,8 @@
-from fastapi.testclient import TestClient
-
 import boto3
 import pytest
 import redis as redis_py
 from botocore.exceptions import ClientError
+from fastapi.testclient import TestClient
 
 from src.config import settings
 from src.main import app

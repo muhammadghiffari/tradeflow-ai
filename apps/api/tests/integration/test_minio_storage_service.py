@@ -2,7 +2,6 @@ import uuid
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError
 
 from src.config import settings
 from src.services.ingest_svc import StorageService

@@ -13,6 +13,7 @@ PRD §14 — Full CEISA 4.0 submission flow:
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
 import os
 import uuid
@@ -111,10 +112,7 @@ class CEISASubmissionService:
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                if isinstance(encrypted, str):
-                    json_body = {"encrypted": encrypted}
-                else:
-                    json_body = encrypted
+                json_body = {"encrypted": encrypted} if isinstance(encrypted, str) else encrypted
 
                 resp = await client.post(
                     f"{self.base_url}/api/v1/submit",
@@ -130,10 +128,8 @@ class CEISASubmissionService:
 
         except httpx.HTTPStatusError as exc:
             error_body = {}
-            try:
+            with contextlib.suppress(Exception):
                 error_body = exc.response.json()
-            except Exception:
-                pass
             error_code = error_body.get("errorCode")
             classification = _classify_error(error_code)
             log.warning(

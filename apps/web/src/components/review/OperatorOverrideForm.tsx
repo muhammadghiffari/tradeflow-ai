@@ -139,6 +139,7 @@ export default function OperatorOverrideForm({
           />
           {isEdited && (
             <button
+              type="button"
               className="override-clear-btn"
               onClick={() => handleClearEdit(key)}
               title="Revert to original value"
@@ -173,6 +174,7 @@ export default function OperatorOverrideForm({
           {Object.keys(edits).length} correction(s) pending
         </span>
         <button
+          type="button"
           className="override-submit-btn"
           onClick={handleSaveAll}
           disabled={isSaving || Object.keys(edits).length === 0}

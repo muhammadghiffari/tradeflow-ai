@@ -57,14 +57,14 @@ export default function CRSWidget({ crs, minSubmitThreshold = 55 }: CRSWidgetPro
   const strokeDashoffset = circumference - (crs.score / 100) * circumference;
 
   return (
-    <div
+    <section
       className={`crs-widget ${isBlocked ? "crs-widget--blocked" : ""}`}
-      role="region"
       aria-label="Compliance Risk Score"
     >
       {/* Gauge */}
       <div className="crs-gauge">
         <svg viewBox="0 0 100 100" className="crs-svg">
+          <title>CRS Score Circle</title>
           <circle cx="50" cy="50" r="45" className="crs-track" />
           <circle
             cx="50"
@@ -139,6 +139,6 @@ export default function CRSWidget({ crs, minSubmitThreshold = 55 }: CRSWidgetPro
         .crs-skeleton { height: 120px; background: #334155; border-radius: 50%; width: 120px; margin: 0 auto 12px; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
       `}</style>
-    </div>
+    </section>
   );
 }

@@ -17,11 +17,9 @@ xgboost_fallback_rules in validation_rules.json.
 """
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from ..state import DeclarationState
 from ..validators.rule_engine import get_rules

@@ -11,8 +11,8 @@ import { createClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:5000",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "dummy",
 );
 
 export type BatchStatus =

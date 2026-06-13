@@ -7,9 +7,8 @@ PRD §4 Decision 2: Keycloak 26 is the ONLY auth provider.
 
 from __future__ import annotations
 
-from functools import lru_cache
-from typing import Annotated
 import time
+from typing import Annotated
 
 import httpx
 import structlog
@@ -17,6 +16,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from jose.exceptions import ExpiredSignatureError
+
 try:
     from supabase import AsyncClient, acreate_client
 except Exception:  # pragma: no cover - optional in lightweight test environments
@@ -68,7 +68,7 @@ def get_keycloak_jwks() -> dict:
     """Fetch Keycloak JWKS with TTL-based caching (refresh every hour)."""
     global _keycloak_jwks, _keycloak_jwks_time
     now = time.time()
-    
+
     if not _keycloak_jwks or (now - _keycloak_jwks_time) > KEYCLOAK_JWKS_TTL:
         with httpx.Client() as client:
             response = client.get(settings.KEYCLOAK_JWKS_URL)
@@ -76,7 +76,7 @@ def get_keycloak_jwks() -> dict:
             _keycloak_jwks = response.json()
             _keycloak_jwks_time = now
             log.info("Refreshed Keycloak JWKS cache")
-    
+
     return _keycloak_jwks
 
 

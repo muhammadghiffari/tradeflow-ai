@@ -11,7 +11,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
-from ..auth.dependencies import RequireOperator, get_current_user, CurrentUser
+from ..auth.dependencies import CurrentUser, RequireOperator, get_current_user
 
 router = APIRouter(prefix="/api/v1", tags=["vessel"])
 
@@ -31,9 +31,10 @@ async def validate_vessel_quick(
     _: None = RequireOperator,
 ) -> dict:
     """Quick vessel lookup — checks AIS database for vessel confirmation."""
-    from ..services.ceisa_auth import CEISAAuthClient  # noqa: F401 (unused — intentional stub)
     import asyncpg
+
     from ..config import settings
+    from ..services.ceisa_auth import CEISAAuthClient  # noqa: F401 (unused — intentional stub)
 
     db_url = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
     try:
@@ -71,8 +72,10 @@ async def validate_vessel_full(
     user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> dict:
     """Full vessel validation with AIS + port lineup checks."""
-    from packages.agents.src.nodes.vessel_validation_agent import vessel_validate_node  # type: ignore
-    from ..config import settings
+    from packages.agents.src.nodes.vessel_validation_agent import (
+        vessel_validate_node,  # type: ignore
+    )
+
 
     # Build minimal state for the vessel_validate_node
     mock_state = {

@@ -26,7 +26,7 @@ export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps)
   const realtime = useBatchRealtime(batchId);
   const stream = useAgentStream(batchId);
 
-  const [batchData, setBatchData] = useState<any>(null);
+  const [batchData, setBatchData] = useState<Record<string, unknown> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,7 +92,7 @@ export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps)
           <h2>AI Agents Processing...</h2>
           <p>Current Node: {stream.currentNode || "Initializing"}</p>
           <div className="event-log">
-            {stream.events.slice(-5).map((e, i) => (
+            {stream.events.slice(-5).map((e, _i) => (
               <div key={`${e.timestamp}-${e.node}`} className="event-item">
                 <span className="event-time">{new Date(e.timestamp).toLocaleTimeString()}</span>
                 <span className="event-node">[{e.node}]</span>

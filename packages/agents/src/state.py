@@ -12,7 +12,7 @@ PRD Invariant #6: Graph state persisted via Redis (not in-memory).
 from __future__ import annotations
 
 import operator
-from typing import Annotated, Any, Literal, TypedDict
+from typing import Annotated, Literal, TypedDict
 
 
 class DeclarationState(TypedDict):
