@@ -5,8 +5,8 @@
  * UI for operators to override OCR/reconciled values before CEISA submission.
  */
 
-import React, { useState } from "react";
-import { Check, X } from "lucide-react";
+import { X } from "lucide-react";
+import { useState } from "react";
 
 export interface ReconciledField {
   value: string | number | null;
@@ -32,7 +32,14 @@ interface OperatorOverrideFormProps {
 const FIELD_GROUPS = [
   {
     title: "Header Information",
-    keys: ["bl_number", "vessel_name", "voyage_number", "port_loading_code", "port_discharge_code", "bl_date"],
+    keys: [
+      "bl_number",
+      "vessel_name",
+      "voyage_number",
+      "port_loading_code",
+      "port_discharge_code",
+      "bl_date",
+    ],
   },
   {
     title: "Entities",
@@ -80,26 +87,40 @@ export default function OperatorOverrideForm({
   };
 
   const renderField = (key: string) => {
-    const fieldData = fields[key] || { value: null, confidence: 0, level: "MISSING", agent_disagreement: false };
+    const fieldData = fields[key] || {
+      value: null,
+      confidence: 0,
+      level: "MISSING",
+      agent_disagreement: false,
+    };
     const currentValue = String(fieldData.value ?? "");
     const isEdited = key in edits;
     const displayValue = isEdited ? edits[key] : currentValue;
 
     return (
-      <div key={key} className={`override-field ${fieldData.agent_disagreement ? 'override-field--disagreement' : ''}`}>
+      <div
+        key={key}
+        className={`override-field ${fieldData.agent_disagreement ? "override-field--disagreement" : ""}`}
+      >
         <div className="override-field-header">
           <label className="override-field-label" htmlFor={`input-${key}`}>
             {key.replace(/_/g, " ")}
           </label>
           <div className="override-field-meta">
             {fieldData.agent_disagreement && (
-              <span className="override-badge override-badge--warning" title="OCR agents disagreed on this value">
+              <span
+                className="override-badge override-badge--warning"
+                title="OCR agents disagreed on this value"
+              >
                 Disagreement
               </span>
             )}
-            <span 
+            <span
               className="override-badge override-badge--confidence"
-              style={{ borderColor: getStatusColor(fieldData.level), color: getStatusColor(fieldData.level) }}
+              style={{
+                borderColor: getStatusColor(fieldData.level),
+                color: getStatusColor(fieldData.level),
+              }}
             >
               {fieldData.level} ({(fieldData.confidence * 100).toFixed(0)}%)
             </span>
@@ -109,7 +130,7 @@ export default function OperatorOverrideForm({
         <div className="override-input-group">
           <input
             id={`input-${key}`}
-            className={`override-input ${isEdited ? 'override-input--edited' : ''}`}
+            className={`override-input ${isEdited ? "override-input--edited" : ""}`}
             type="text"
             value={displayValue}
             onChange={(e) => handleEditChange(key, e.target.value)}
@@ -142,9 +163,7 @@ export default function OperatorOverrideForm({
         {FIELD_GROUPS.map((group) => (
           <div key={group.title} className="override-group">
             <h4 className="override-group-title">{group.title}</h4>
-            <div className="override-grid">
-              {group.keys.map(renderField)}
-            </div>
+            <div className="override-grid">{group.keys.map(renderField)}</div>
           </div>
         ))}
       </div>

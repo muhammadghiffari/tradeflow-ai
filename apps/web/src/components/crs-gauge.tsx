@@ -1,10 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-
 interface CRSGaugeProps {
-  score: number;   // 0–100
-  grade: string;   // A, B, C, D, F
+  score: number; // 0–100
+  grade: string; // A, B, C, D, F
   size?: number;
 }
 
@@ -24,7 +22,7 @@ export function CRSGauge({ score, grade, size = 160 }: CRSGaugeProps) {
   const strokeWidth = size * 0.075;
 
   // Arc: 270° sweep (from -135° to 135°)
-  const arcStart = 225;   // degrees
+  const arcStart = 225; // degrees
   const arcSweep = 270;
   const pct = Math.min(Math.max(score, 0), 100) / 100;
 

@@ -2,7 +2,7 @@
 
 /**
  * TradeFlow AI — Operator Review Page (T-078)
- * 
+ *
  * Master container combining:
  *  - useBatchRealtime (CDC status)
  *  - useAgentStream (Live streaming events)
@@ -11,12 +11,12 @@
  *  - OperatorOverrideForm (HitL corrections)
  */
 
-import React, { useEffect, useState } from "react";
-import { useBatchRealtime } from "@/hooks/useBatchRealtime";
-import { useAgentStream } from "@/hooks/useAgentStream";
 import CRSWidget from "@/components/review/CRSWidget";
+import OperatorOverrideForm, { type Correction } from "@/components/review/OperatorOverrideForm";
 import ValidationIssuesPanel from "@/components/review/ValidationIssuesPanel";
-import OperatorOverrideForm, { Correction } from "@/components/review/OperatorOverrideForm";
+import { useAgentStream } from "@/hooks/useAgentStream";
+import { useBatchRealtime } from "@/hooks/useBatchRealtime";
+import { useEffect, useState } from "react";
 
 interface OperatorReviewPageProps {
   batchId: string;
@@ -25,7 +25,7 @@ interface OperatorReviewPageProps {
 export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps) {
   const realtime = useBatchRealtime(batchId);
   const stream = useAgentStream(batchId);
-  
+
   const [batchData, setBatchData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,13 +37,13 @@ export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps)
         try {
           const token = localStorage.getItem("tradeflow_token");
           const res = await fetch(`/api/v1/batches/${batchId}`, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           });
           if (!res.ok) throw new Error("Failed to load batch data");
           const data = await res.json();
           setBatchData(data);
-        } catch (err: any) {
-          setError(err.message);
+        } catch (err: unknown) {
+          setError(err instanceof Error ? err.message : "An error occurred");
         }
       };
       fetchBatch();
@@ -57,23 +57,23 @@ export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps)
       const token = localStorage.getItem("tradeflow_token");
       const res = await fetch(`/api/v1/batches/${batchId}/review`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ corrections, approved }),
       });
       if (!res.ok) throw new Error("Failed to submit review");
-      
+
       // Graph resumed. Now manually trigger CEISA submission if approved.
       if (approved) {
         await fetch(`/api/v1/batches/${batchId}/submit`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsSubmitting(false);
     }
@@ -81,7 +81,7 @@ export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps)
 
   // 1. Still Processing State
   if (
-    realtime.status === "preprocessing" || 
+    realtime.status === "preprocessing" ||
     realtime.status === "processing" ||
     (stream.isConnected && !stream.isComplete)
   ) {
@@ -93,10 +93,10 @@ export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps)
           <p>Current Node: {stream.currentNode || "Initializing"}</p>
           <div className="event-log">
             {stream.events.slice(-5).map((e, i) => (
-              <div key={i} className="event-item">
+              <div key={`${e.timestamp}-${e.node}`} className="event-item">
                 <span className="event-time">{new Date(e.timestamp).toLocaleTimeString()}</span>
                 <span className="event-node">[{e.node}]</span>
-                <span className="event-type">{e.event_type.replace(/_/g, ' ')}</span>
+                <span className="event-type">{e.event_type.replace(/_/g, " ")}</span>
               </div>
             ))}
           </div>
@@ -142,7 +142,8 @@ export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps)
           <p className="review-subtitle">Batch ID: {batchId}</p>
         </div>
         <div className="review-actions">
-          <button 
+          <button
+            type="button"
             className="btn btn-reject"
             onClick={() => handleSubmitReview([], false)}
             disabled={isSubmitting}
@@ -156,18 +157,26 @@ export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps)
 
       <div className="review-grid">
         <aside className="review-sidebar">
-          <CRSWidget 
-            crs={batchData?.batch?.crs_score ? {
-              score: batchData.batch.crs_score,
-              grade: batchData.batch.crs_grade,
-              components: batchData.extracted_fields?.[0]?.crs_components || {
-                document_quality: 18, validation_pass_rate: 22, agent_agreement: 19, hs_confidence: 18, vessel_validation: 15
-              } // fallback mapping if specific row structure varies
-            } : null}
+          <CRSWidget
+            crs={
+              batchData?.batch?.crs_score
+                ? {
+                    score: batchData.batch.crs_score,
+                    grade: batchData.batch.crs_grade,
+                    components: batchData.extracted_fields?.[0]?.crs_components || {
+                      document_quality: 18,
+                      validation_pass_rate: 22,
+                      agent_agreement: 19,
+                      hs_confidence: 18,
+                      vessel_validation: 15,
+                    }, // fallback mapping if specific row structure varies
+                  }
+                : null
+            }
             minSubmitThreshold={55}
           />
           <div className="mt-4" />
-          <ValidationIssuesPanel 
+          <ValidationIssuesPanel
             results={batchData?.validation_results || []}
             onFieldClick={(f) => {
               document.getElementById(`input-${f}`)?.focus();
@@ -177,7 +186,7 @@ export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps)
 
         <main className="review-main">
           {batchData?.extracted_fields?.[0]?.reconciled_fields && (
-            <OperatorOverrideForm 
+            <OperatorOverrideForm
               fields={batchData.extracted_fields[0].reconciled_fields}
               onSave={(corrections) => handleSubmitReview(corrections, true)}
               isSaving={isSubmitting}

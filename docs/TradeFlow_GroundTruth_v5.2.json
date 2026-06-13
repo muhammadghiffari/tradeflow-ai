@@ -5,13 +5,8 @@
     "scac": "HLCU",
     "pages": 1,
     "processing_route": "STANDARD",
-    "watermarks": [
-      "DRAFT",
-      "ORIGINAL"
-    ],
-    "date_formats_found": [
-      "DD/MON/YYYY"
-    ],
+    "watermarks": ["DRAFT", "ORIGINAL"],
+    "date_formats_found": ["DD/MON/YYYY"],
     "ceisa_fields": {
       "nomorBl": "HLCULIV130219209",
       "carrier_ref": "30221404",
@@ -54,13 +49,8 @@
     "scac": "HLCU",
     "pages": 2,
     "processing_route": "STANDARD",
-    "watermarks": [
-      "DRAFT",
-      "ORIGINAL"
-    ],
-    "date_formats_found": [
-      "MON-DD-YYYY"
-    ],
+    "watermarks": ["DRAFT", "ORIGINAL"],
+    "date_formats_found": ["MON-DD-YYYY"],
     "ceisa_fields": {
       "nomorBl": "HLCUDX2120201403",
       "namaShipper": "K G INTERNATIONAL FZCO, P.O.BOX 17122, JEBEL ALI, DUBAI, UAE",
@@ -75,12 +65,7 @@
       "seal_no": "BSL522550",
       "uraian": "BEARINGS & BEARING UNITS",
       "hs_codes_raw": "8482.10.00,8482.20.00,8482.50.00,8482.80.00",
-      "hs_codes_normalized": [
-        "84821000",
-        "84822000",
-        "84825000",
-        "84828000"
-      ],
+      "hs_codes_normalized": ["84821000", "84822000", "84825000", "84828000"],
       "beratKotor": 12215.0,
       "beratBersih": 11105.0,
       "measurement_cbm": 12.215,
@@ -109,18 +94,11 @@
     "scac": "MSCU",
     "pages": 1,
     "processing_route": "STANDARD",
-    "watermarks": [
-      "ORIGINAL"
-    ],
-    "date_formats_found": [
-      "DD/MM/YYYY"
-    ],
+    "watermarks": ["ORIGINAL"],
+    "date_formats_found": ["DD/MM/YYYY"],
     "ceisa_fields": {
       "nomorBl": null,
-      "container_nos": [
-        "SCUL3875766",
-        "TRIU8051100"
-      ],
+      "container_nos": ["SCUL3875766", "TRIU8051100"],
       "tglBl": "2016-09-14"
     },
     "ocr_challenges": [
@@ -139,12 +117,8 @@
     "scac": "MAEU",
     "pages": 1,
     "processing_route": "FAST_PATH",
-    "watermarks": [
-      "ORIGINAL"
-    ],
-    "date_formats_found": [
-      "DD-MM-YYYY"
-    ],
+    "watermarks": ["ORIGINAL"],
+    "date_formats_found": ["DD-MM-YYYY"],
     "ceisa_fields": {
       "nomorBl": "MAEU-AT-06324",
       "nomorBl_normalized": "MAEUАТ06324",
@@ -184,14 +158,8 @@
     "scac": "EGLV",
     "pages": 2,
     "processing_route": "STANDARD",
-    "watermarks": [
-      "ORIGINAL",
-      "PROOFREAD",
-      "READ"
-    ],
-    "date_formats_found": [
-      "DD.MM.YYYY"
-    ],
+    "watermarks": ["ORIGINAL", "PROOFREAD", "READ"],
+    "date_formats_found": ["DD.MM.YYYY"],
     "ceisa_fields": {
       "nomorBl": "EGLV100150418716",
       "namaShipper": "ADANI ENTERPRISES LIMITED, ADANI CORPORATE HOUSE, ADANI SHANTIGRAM, SG HIGHWAY, AHMEDABAD, GUJARAT 382421 INDIA",
@@ -242,14 +210,8 @@
     "scac": "EGLV",
     "pages": 2,
     "processing_route": "STANDARD",
-    "watermarks": [
-      "ORIGINAL",
-      "PROOFREAD",
-      "READ"
-    ],
-    "date_formats_found": [
-      "MON.DD,YYYY"
-    ],
+    "watermarks": ["ORIGINAL", "PROOFREAD", "READ"],
+    "date_formats_found": ["MON.DD,YYYY"],
     "ceisa_fields": {
       "nomorBl": "EGLV235500185391",
       "namaShipper": "PETROVIETNAM FERTILIZER AND CHEMICALS CORPORATION, ON BEHALF OF AMEROPA ASIA PTE LTD",
@@ -283,11 +245,7 @@
     "scac": "EGLV",
     "pages": 2,
     "processing_route": "STANDARD",
-    "watermarks": [
-      "ORIGINAL",
-      "PROOFREAD",
-      "READ"
-    ],
+    "watermarks": ["ORIGINAL", "PROOFREAD", "READ"],
     "ceisa_fields": {
       "nomorBl": "EGLV560500119061",
       "namaShipper": "RASCHIG GMBH, MUNDENHEIMER STR. 100, 67061 LUDWIGSHAFEN, GERMANY",
@@ -320,13 +278,8 @@
     "scac": "CSLU",
     "pages": 2,
     "processing_route": "STANDARD",
-    "watermarks": [
-      "DRAFT",
-      "ORIGINAL"
-    ],
-    "date_formats_found": [
-      "DD-MON-YYYY"
-    ],
+    "watermarks": ["DRAFT", "ORIGINAL"],
+    "date_formats_found": ["DD-MON-YYYY"],
     "ceisa_fields": {
       "nomorBl": "CSX23SHKMUN017829",
       "namaShipper": "FOSHAN WEN ZHI YUAN TRADING CO.,LTD., GUICHENG, NANHAI DISTRICT, FOSHAN, CHINA",

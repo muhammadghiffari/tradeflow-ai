@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Activity, Play, StopCircle, RefreshCw, SlidersHorizontal, Settings2, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Activity, Play, RefreshCw, SlidersHorizontal, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const SCENARIOS = [
-  { id: "realistic",     label: "Realistic",      desc: "Random acceptance based on configurable reject rate" },
-  { id: "always_accept", label: "Always Accept",  desc: "100% acceptance rate (happy path)" },
-  { id: "always_reject", label: "Always Reject",  desc: "100% rejection rate with E-codes" },
-  { id: "flaky",         label: "Flaky Network",  desc: "Intermittent 503 Service Unavailable responses" },
+  {
+    id: "realistic",
+    label: "Realistic",
+    desc: "Random acceptance based on configurable reject rate",
+  },
+  { id: "always_accept", label: "Always Accept", desc: "100% acceptance rate (happy path)" },
+  { id: "always_reject", label: "Always Reject", desc: "100% rejection rate with E-codes" },
+  { id: "flaky", label: "Flaky Network", desc: "Intermittent 503 Service Unavailable responses" },
 ];
 
 export default function SimulatorControlPage() {
@@ -27,7 +31,7 @@ export default function SimulatorControlPage() {
       });
       if (!res.ok) throw new Error("Failed to update simulator");
       toast.success(`Simulator set to ${activeScenario} mode`);
-    } catch (err) {
+    } catch (_err) {
       toast.error("Failed to update simulator scenario");
     } finally {
       setLoading(false);
@@ -67,7 +71,7 @@ export default function SimulatorControlPage() {
                     "flex flex-col items-start p-4 rounded-xl border text-left transition-all",
                     activeScenario === s.id
                       ? "border-primary bg-primary/10 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
-                      : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04]"
+                      : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04]",
                   )}
                 >
                   <span className="font-semibold text-sm">{s.label}</span>
@@ -102,7 +106,11 @@ export default function SimulatorControlPage() {
                 disabled={loading}
                 className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors"
               >
-                {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                {loading ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
                 Apply Configuration
               </button>
             </div>

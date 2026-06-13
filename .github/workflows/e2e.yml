@@ -20,7 +20,7 @@ jobs:
           python-version: "3.13"  # paddlepaddle only has cp313 wheels
 
       - name: Install backend dependencies
-        run: uv pip install --system -e "apps/api[dev]"
+        run: uv pip install -e "apps/api[dev]"
 
       - name: Start full stack services
         run: |

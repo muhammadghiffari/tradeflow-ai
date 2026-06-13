@@ -5,8 +5,8 @@
  * Displays critical errors, warnings, and missing fields.
  */
 
-import React, { useMemo } from "react";
-import { AlertTriangle, XCircle, Info } from "lucide-react";
+import { AlertTriangle, Info, XCircle, type LucideIcon } from "lucide-react";
+import { useMemo } from "react";
 
 export interface ValidationResult {
   rule_id: string;
@@ -26,10 +26,7 @@ export default function ValidationIssuesPanel({
   results,
   onFieldClick,
 }: ValidationIssuesPanelProps) {
-  const issues = useMemo(
-    () => results.filter((r) => !r.passed && r.error_message),
-    [results]
-  );
+  const issues = useMemo(() => results.filter((r) => !r.passed && r.error_message), [results]);
 
   const errors = issues.filter((i) => i.severity === "ERROR");
   const warnings = issues.filter((i) => i.severity === "WARNING");
@@ -47,8 +44,8 @@ export default function ValidationIssuesPanel({
   const renderIssueGroup = (
     title: string,
     items: ValidationResult[],
-    Icon: React.FC<any>,
-    iconClass: string
+    Icon: LucideIcon,
+    iconClass: string,
   ) => {
     if (items.length === 0) return null;
     return (

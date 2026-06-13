@@ -6,7 +6,8 @@ export default function AuditPage() {
       <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-10 shadow-2xl shadow-black/30">
         <h1 className="text-2xl font-bold tracking-tight">Audit Trail</h1>
         <p className="mt-3 text-sm text-slate-400">
-          Audit Trail is under construction. This page will display a history of actions, approvals, and blockchain anchors.
+          Audit Trail is under construction. This page will display a history of actions, approvals,
+          and blockchain anchors.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link

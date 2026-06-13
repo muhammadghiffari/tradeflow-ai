@@ -2,17 +2,17 @@
 
 /**
  * TradeFlow AI — Batch Realtime Subscription Hook (T-076)
- * 
+ *
  * Subscribes to Supabase Realtime CDC for a specific batch.
  * Returns the latest batch status and triggers refetch on change.
  */
 
-import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
 export type BatchStatus =
@@ -94,7 +94,7 @@ export function useBatchRealtime(batchId: string | null): BatchRealtimeState {
           table: "batches",
           filter: `id=eq.${batchId}`,
         },
-        handleBatchUpdate
+        handleBatchUpdate,
       )
       .subscribe();
 

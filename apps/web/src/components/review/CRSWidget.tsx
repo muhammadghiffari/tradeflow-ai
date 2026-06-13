@@ -1,12 +1,5 @@
 "use client";
 
-/**
- * TradeFlow AI — CRS Widget (T-082)
- * Displays the Compliance Risk Score (0-100) with animated gauge.
- */
-
-import React from "react";
-
 interface CRSData {
   score: number;
   grade: "A" | "B" | "C" | "D" | "F";
@@ -64,7 +57,11 @@ export default function CRSWidget({ crs, minSubmitThreshold = 55 }: CRSWidgetPro
   const strokeDashoffset = circumference - (crs.score / 100) * circumference;
 
   return (
-    <div className={`crs-widget ${isBlocked ? "crs-widget--blocked" : ""}`} role="region" aria-label="Compliance Risk Score">
+    <div
+      className={`crs-widget ${isBlocked ? "crs-widget--blocked" : ""}`}
+      role="region"
+      aria-label="Compliance Risk Score"
+    >
       {/* Gauge */}
       <div className="crs-gauge">
         <svg viewBox="0 0 100 100" className="crs-svg">
@@ -79,8 +76,12 @@ export default function CRSWidget({ crs, minSubmitThreshold = 55 }: CRSWidgetPro
             strokeDashoffset={strokeDashoffset}
             style={{ transition: "stroke-dashoffset 1s ease-out" }}
           />
-          <text x="50" y="46" className="crs-score-text">{crs.score}</text>
-          <text x="50" y="60" className="crs-label-text">/ 100</text>
+          <text x="50" y="46" className="crs-score-text">
+            {crs.score}
+          </text>
+          <text x="50" y="60" className="crs-label-text">
+            / 100
+          </text>
         </svg>
         <div className="crs-grade" style={{ color: gradeColor }}>
           Grade {crs.grade}
@@ -96,7 +97,9 @@ export default function CRSWidget({ crs, minSubmitThreshold = 55 }: CRSWidgetPro
             <div key={key} className="crs-component">
               <div className="crs-component-header">
                 <span className="crs-component-label">{COMPONENT_LABELS[key] ?? key}</span>
-                <span className="crs-component-score">{value.toFixed(1)}/{max}</span>
+                <span className="crs-component-score">
+                  {value.toFixed(1)}/{max}
+                </span>
               </div>
               <div className="crs-component-bar-track">
                 <div

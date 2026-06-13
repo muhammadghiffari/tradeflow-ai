@@ -98,7 +98,7 @@
   ],
   "xgboost_fallback_rules": {
     "description": "Rule-based rejection risk when XGBoost model is unavailable (< 500 labeled samples)",
-    "base_risk": 0.10,
+    "base_risk": 0.1,
     "rules": [
       {
         "feature": "hs_code_confidence",

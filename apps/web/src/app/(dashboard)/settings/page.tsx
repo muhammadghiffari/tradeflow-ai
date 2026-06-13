@@ -6,8 +6,8 @@ export default function SettingsPage() {
       <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-10 shadow-2xl shadow-black/30">
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="mt-3 text-sm text-slate-400">
-          Settings will let you manage your account, company preferences, and integrations.
-          For now, use the dashboard or upload pages to continue testing.
+          Settings will let you manage your account, company preferences, and integrations. For now,
+          use the dashboard or upload pages to continue testing.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link

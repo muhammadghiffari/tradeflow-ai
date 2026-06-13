@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { Upload, FileText, X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { AlertCircle, CheckCircle2, FileText, Loader2, Upload, X } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 
 type DocSlot = "bill_of_lading" | "packing_list" | "invoice";
 
@@ -17,9 +17,9 @@ interface FileSlot {
 }
 
 const INITIAL_SLOTS: FileSlot[] = [
-  { slot: "bill_of_lading", label: "Bill of Lading (B/L)",   required: true,  file: null },
-  { slot: "packing_list",   label: "Packing List",           required: true,  file: null },
-  { slot: "invoice",        label: "Commercial Invoice",      required: true,  file: null },
+  { slot: "bill_of_lading", label: "Bill of Lading (B/L)", required: true, file: null },
+  { slot: "packing_list", label: "Packing List", required: true, file: null },
+  { slot: "invoice", label: "Commercial Invoice", required: true, file: null },
 ];
 
 export default function UploadPage() {
@@ -35,7 +35,7 @@ export default function UploadPage() {
   });
 
   const setFile = (slot: DocSlot, file: File | null) => {
-    setSlots((prev) => prev.map((s) => s.slot === slot ? { ...s, file } : s));
+    setSlots((prev) => prev.map((s) => (s.slot === slot ? { ...s, file } : s)));
   };
 
   const handleDrop = useCallback((e: React.DragEvent, slot: DocSlot) => {
@@ -60,13 +60,15 @@ export default function UploadPage() {
     setUploading(true);
     try {
       const form = new FormData();
-      slots.forEach(({ file }) => { if (file) form.append("files", file); });
+      slots.forEach(({ file }) => {
+        if (file) form.append("files", file);
+      });
 
       // @ts-ignore — accessToken is added via NextAuth callbacks
       const accessToken = session?.accessToken;
       const headers: Record<string, string> = {};
       if (accessToken) {
-        headers["Authorization"] = `Bearer ${accessToken}`;
+        headers.Authorization = `Bearer ${accessToken}`;
       }
 
       const res = await fetch("/api/v1/batches", { method: "POST", body: form, headers });
@@ -108,7 +110,9 @@ export default function UploadPage() {
                 <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
                 </div>
                 <button
                   onClick={() => setFile(slot, null)}
@@ -121,13 +125,18 @@ export default function UploadPage() {
               /* Drop zone */
               <div
                 className={cn("drop-zone p-8 text-center", dragging === slot && "drag-over")}
-                onDragOver={(e) => { e.preventDefault(); setDragging(slot); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragging(slot);
+                }}
                 onDragLeave={() => setDragging(null)}
                 onDrop={(e) => handleDrop(e, slot)}
                 onClick={() => inputRefs.current[slot]?.click()}
               >
                 <input
-                  ref={(el) => { inputRefs.current[slot] = el; }}
+                  ref={(el) => {
+                    inputRefs.current[slot] = el;
+                  }}
                   type="file"
                   className="hidden"
                   accept=".pdf,.jpg,.jpeg,.png,.tiff,.xlsx"
@@ -137,7 +146,9 @@ export default function UploadPage() {
                 <p className="text-sm text-muted-foreground">
                   <span className="text-primary font-medium">Click to upload</span> or drag & drop
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">PDF, JPG, PNG, TIFF, XLSX · Max 50MB</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PDF, JPG, PNG, TIFF, XLSX · Max 50MB
+                </p>
               </div>
             )}
           </div>
@@ -148,8 +159,14 @@ export default function UploadPage() {
       <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 flex items-start gap-3">
         <AlertCircle className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p>AI extraction begins immediately after upload. Processing typically takes <strong className="text-foreground">2–5 minutes</strong>.</p>
-          <p>Documents are encrypted in transit and at rest. Audit trail is anchored on Polygon blockchain.</p>
+          <p>
+            AI extraction begins immediately after upload. Processing typically takes{" "}
+            <strong className="text-foreground">2–5 minutes</strong>.
+          </p>
+          <p>
+            Documents are encrypted in transit and at rest. Audit trail is anchored on Polygon
+            blockchain.
+          </p>
         </div>
       </div>
 
@@ -161,13 +178,17 @@ export default function UploadPage() {
           "w-full flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200",
           allRequired && !uploading
             ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25"
-            : "bg-white/10 text-muted-foreground cursor-not-allowed"
+            : "bg-white/10 text-muted-foreground cursor-not-allowed",
         )}
       >
         {uploading ? (
-          <><Loader2 className="h-4 w-4 animate-spin" /> Processing Upload…</>
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" /> Processing Upload…
+          </>
         ) : (
-          <><FileText className="h-4 w-4" /> Start AI Processing</>
+          <>
+            <FileText className="h-4 w-4" /> Start AI Processing
+          </>
         )}
       </button>
     </div>

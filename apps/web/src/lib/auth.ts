@@ -1,14 +1,15 @@
-import NextAuth from "next-auth"
-import Keycloak from "next-auth/providers/keycloak"
-import Credentials from "next-auth/providers/credentials"
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import Keycloak from "next-auth/providers/keycloak";
 
-const keycloakClientId = process.env.KEYCLOAK_WEB_CLIENT_ID || process.env.KEYCLOAK_CLIENT_ID
-const keycloakClientSecret = process.env.KEYCLOAK_WEB_CLIENT_SECRET || process.env.KEYCLOAK_CLIENT_SECRET
-const enableTestCredentials = process.env.NEXTAUTH_ALLOW_TEST_CREDENTIALS === "true"
-const testUsername = process.env.NEXTAUTH_TEST_USER || "e2e@test.local"
-const testPassword = process.env.NEXTAUTH_TEST_PASSWORD || "E2EPassw0rd!"
+const keycloakClientId = process.env.KEYCLOAK_WEB_CLIENT_ID || process.env.KEYCLOAK_CLIENT_ID;
+const keycloakClientSecret =
+  process.env.KEYCLOAK_WEB_CLIENT_SECRET || process.env.KEYCLOAK_CLIENT_SECRET;
+const enableTestCredentials = process.env.NEXTAUTH_ALLOW_TEST_CREDENTIALS === "true";
+const testUsername = process.env.NEXTAUTH_TEST_USER || "e2e@test.local";
+const testPassword = process.env.NEXTAUTH_TEST_PASSWORD || "E2EPassw0rd!";
 
-const providers = []
+const providers = [];
 
 if (process.env.KEYCLOAK_ISSUER) {
   providers.push(
@@ -16,8 +17,8 @@ if (process.env.KEYCLOAK_ISSUER) {
       clientId: keycloakClientId,
       clientSecret: keycloakClientSecret,
       issuer: process.env.KEYCLOAK_ISSUER,
-    })
-  )
+    }),
+  );
 }
 
 if (enableTestCredentials) {
@@ -30,27 +31,24 @@ if (enableTestCredentials) {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (
-          credentials?.username === testUsername &&
-          credentials?.password === testPassword
-        ) {
+        if (credentials?.username === testUsername && credentials?.password === testPassword) {
           return {
             id: "e2e-user",
             name: "E2E Test User",
             email: testUsername,
             roles: ["operator"],
-          }
+          };
         }
-        return null
+        return null;
       },
-    })
-  )
+    }),
+  );
 }
 
 if (providers.length === 0) {
   throw new Error(
-    "No NextAuth providers configured. Set KEYCLOAK_ISSUER or NEXTAUTH_ALLOW_TEST_CREDENTIALS."
-  )
+    "No NextAuth providers configured. Set KEYCLOAK_ISSUER or NEXTAUTH_ALLOW_TEST_CREDENTIALS.",
+  );
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -60,30 +58,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, account, profile, user }) {
       if (account) {
-        token.accessToken = account.access_token
+        token.accessToken = account.access_token;
         if (profile && typeof profile === "object") {
-          const profileWithRoles = profile as { realm_access?: { roles?: string[] } }
+          const profileWithRoles = profile as { realm_access?: { roles?: string[] } };
           if (profileWithRoles.realm_access?.roles) {
-            token.roles = profileWithRoles.realm_access.roles
+            token.roles = profileWithRoles.realm_access.roles;
           }
         }
       }
 
       if (!account && user && typeof user === "object" && "roles" in user) {
         // @ts-expect-error user can carry custom fields from credentials provider
-        token.roles = user.roles
+        token.roles = user.roles;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
       // @ts-ignore
-      session.accessToken = token.accessToken
+      session.accessToken = token.accessToken;
       // @ts-ignore
-      session.roles = token.roles || []
-      return session
+      session.roles = token.roles || [];
+      return session;
     },
   },
-})
+});
 
-export const GET = handlers.GET
-export const POST = handlers.POST
+export const GET = handlers.GET;
+export const POST = handlers.POST;

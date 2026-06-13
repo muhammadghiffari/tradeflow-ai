@@ -2,7 +2,7 @@
 
 /**
  * TradeFlow AI — Agent Processing Stream Hook (T-077)
- * 
+ *
  * Connects to SSE endpoint GET /api/v1/batches/{id}/stream
  * Returns real-time agent processing events for live UI updates.
  */
@@ -39,9 +39,7 @@ export function useAgentStream(batchId: string | null): AgentStreamState {
     if (!batchId) return;
 
     const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("tradeflow_token") ?? ""
-        : "";
+      typeof window !== "undefined" ? (localStorage.getItem("tradeflow_token") ?? "") : "";
 
     // EventSource doesn't support custom headers — use query param for token
     const url = `/api/v1/batches/${batchId}/stream?token=${encodeURIComponent(token)}`;
@@ -59,7 +57,8 @@ export function useAgentStream(batchId: string | null): AgentStreamState {
           ...s,
           events: [...s.events, event],
           currentNode: event.node,
-          isComplete: event.event_type === "pipeline_complete" || event.event_type === "review_ready",
+          isComplete:
+            event.event_type === "pipeline_complete" || event.event_type === "review_ready",
         }));
       } catch {
         // non-JSON heartbeat — ignore

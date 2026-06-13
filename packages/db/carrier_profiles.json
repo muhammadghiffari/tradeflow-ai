@@ -16,8 +16,12 @@
         "bl_number_label": "B/L NUMBER"
       },
       "field_normalizations": {
-        "voyage_number": {"trim": true, "uppercase": true},
-        "vessel_name": {"trim": true, "uppercase": true, "remove_prefix": ["M/V ", "MV ", "S.S. "]}
+        "voyage_number": { "trim": true, "uppercase": true },
+        "vessel_name": {
+          "trim": true,
+          "uppercase": true,
+          "remove_prefix": ["M/V ", "MV ", "S.S. "]
+        }
       },
       "known_vessels": ["RIO DE LA PLATA", "CAP VERDE"]
     },
@@ -34,8 +38,12 @@
         "bl_number_label": "B/L No."
       },
       "field_normalizations": {
-        "voyage_number": {"trim": true, "uppercase": true},
-        "vessel_name": {"trim": true, "uppercase": true, "remove_prefix": ["NMV ", "MV ", "M.V. "]}
+        "voyage_number": { "trim": true, "uppercase": true },
+        "vessel_name": {
+          "trim": true,
+          "uppercase": true,
+          "remove_prefix": ["NMV ", "MV ", "M.V. "]
+        }
       },
       "known_vessels": ["NMV MAERSK COPENHAGEN"]
     },
@@ -52,8 +60,8 @@
         "bl_number_label": "B/L NO."
       },
       "field_normalizations": {
-        "voyage_number": {"trim": true, "uppercase": true},
-        "vessel_name": {"trim": true, "uppercase": true, "remove_suffix": [" V."]}
+        "voyage_number": { "trim": true, "uppercase": true },
+        "vessel_name": { "trim": true, "uppercase": true, "remove_suffix": [" V."] }
       },
       "known_vessels": ["CAPE NORVIEGA", "HANJIN ROTTERDAM", "KMTC DUBAI"]
     },
@@ -70,8 +78,8 @@
         "bl_number_label": "B/L NUMBER"
       },
       "field_normalizations": {
-        "voyage_number": {"trim": true, "uppercase": true},
-        "vessel_name": {"trim": true, "uppercase": true}
+        "voyage_number": { "trim": true, "uppercase": true },
+        "vessel_name": { "trim": true, "uppercase": true }
       },
       "known_vessels": ["GFS GISELLE"]
     },
@@ -88,8 +96,8 @@
         "bl_number_label": "B/L No."
       },
       "field_normalizations": {
-        "voyage_number": {"trim": true, "uppercase": true},
-        "vessel_name": {"trim": true, "uppercase": true}
+        "voyage_number": { "trim": true, "uppercase": true },
+        "vessel_name": { "trim": true, "uppercase": true }
       },
       "known_vessels": []
     }
