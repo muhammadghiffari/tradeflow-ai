@@ -39,6 +39,15 @@ except Exception:  # pragma: no cover - provide lightweight fallbacks for tests
             pass
 
 from ..config import settings
+from celery.signals import worker_process_init
+import asyncio
+
+@worker_process_init.connect
+def init_celery_worker(**kwargs):
+    from ..dependencies import init_supabase
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(init_supabase())
 
 # ── Celery app ────────────────────────────────────────────────────────────────
 celery_app = Celery(
