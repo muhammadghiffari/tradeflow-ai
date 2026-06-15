@@ -7,6 +7,18 @@
 [![Accuracy](https://img.shields.io/badge/OCR_Accuracy-90.59%25_ANLS-8A2BE2?style=for-the-badge)](#)
 [![INSW](https://img.shields.io/badge/INSW_Detection-100%25-00C851?style=for-the-badge)](#)
 
+<div align="center">
+  <br />
+  <a href="https://tradeflow-ai.vercel.app">
+    <img src="https://img.shields.io/badge/🌐_Try_Live_24/7_Demo-FF0055?style=for-the-badge" alt="Live Demo" />
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="./docs/E2E_Runbook.md">
+    <img src="https://img.shields.io/badge/💻_Run_Locally_(Docker)-0078D6?style=for-the-badge" alt="Run Locally" />
+  </a>
+  <br /><br />
+</div>
+
 **Predictive Customs Intelligence Platform**
 
 TradeFlow AI transforms fragmented CIPL trade documents (Bill of Lading, Packing List, Commercial Invoice) into validated, CEISA 4.0-compliant import declarations. Powered by a multi-agent Vision-Language Model ensemble, proactive rejection risk prediction, an immutable blockchain audit trail, and an adaptive learning system.

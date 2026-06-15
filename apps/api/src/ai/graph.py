@@ -31,6 +31,10 @@ log = structlog.get_logger()
 
 def _needs_fallback(state: ExtractionGraphState) -> str:
     """Route to OCR ensemble fallback when quality, confidence, or data is weak."""
+    if settings.CLOUD_LLM_ONLY:
+        log.info("CLOUD_LLM_ONLY is active — bypassing heavy OCR ensemble fallback")
+        return "validate"
+        
     for doc in state.get("documents", []):
         if doc.get("error") or not doc.get("extracted_data"):
             return "fallback"

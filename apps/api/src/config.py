@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     REDIS_CACHE_DB: int = 1
 
     # ── AI Inference Services (SDD §2.3–2.6) ─────────────────────────────────
+    CLOUD_LLM_ONLY: bool = False                                    # Bypass heavy local models and use Gemini API instead
     SURYA_INFERENCE_URL: AnyHttpUrl = "http://surya-svc:8001"       # Agent A
     OLM_INFERENCE_URL: AnyHttpUrl = "http://olm-inference:8000"     # Agent D
     PADDLEOCR_SVC_URL: AnyHttpUrl = "http://paddleocr-svc:8002"     # Agent B

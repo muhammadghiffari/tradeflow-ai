@@ -111,6 +111,16 @@ class OCREngineService:
         raw_text = ""
         candidates: dict[str, dict[str, Any]] = {}
 
+        if settings.CLOUD_LLM_ONLY:
+            page_data_urls = [_data_url(b) for b in page_images[: settings.OCR_MAX_LLM_PAGES]]
+            return {
+                "pages": page_data_urls,
+                "raw_text": "",
+                "ocr_candidates": {},
+                "quality_score": 1.0,
+                "ocr_engine_latencies_ms": {}
+            }
+
         pdf_task = None
         if suffix == ".pdf" or mime_type == "application/pdf":
             pdf_task = asyncio.to_thread(self._extract_pdf_text, file_bytes)
