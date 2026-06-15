@@ -5,6 +5,41 @@
 
 ---
 
+## Phase 0: Fresh Device Installation (First Time Setup)
+
+If you are running TradeFlow AI on a new device or a team member's laptop for the first time, follow these steps before the demo checklist.
+
+### 1. Prerequisites
+Ensure the new device has the following installed:
+- **Git**
+- **Docker Desktop** (with WSL2 enabled if on Windows)
+- **NVIDIA Drivers & NVIDIA Container Toolkit** (CUDA required for fast GPU acceleration)
+- **Node.js 20+** and **pnpm** (optional, for local frontend dev outside Docker)
+
+### 2. Clone the Repository
+```bash
+git clone https://github.com/muhammadghiffari/tradeflow-ai.git
+cd tradeflow-ai
+```
+
+### 3. Setup Environment Variables
+Copy the example environment file and configure your secrets.
+```bash
+cp .env.example .env
+```
+**CRITICAL:** Open `.env` and fill in:
+- `HF_TOKEN=hf_...` : Your HuggingFace Read Token (Required to download the `muhammadghiffari/olm-ocr-cipl-v1` LoRA adapter).
+- `GEMINI_API_KEY=...` : Your Gemini API key for fallback inference and RAG.
+
+### 4. Build and Start the E2E Services
+Start all 14 services (Database, Backend, Frontend, CEISA Simulator, and 4 OCR Agents).
+*(Note: The first time you run this, downloading the 7B parameter AI models will take 10-20 minutes depending on internet speed).*
+```bash
+docker compose up -d --build
+```
+
+---
+
 ## Pre-Demo Checklist (30 minutes before)
 
 Run this in order. Each step has a pass/fail signal.
