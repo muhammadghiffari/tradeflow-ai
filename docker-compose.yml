@@ -344,6 +344,16 @@ services:
     depends_on:
       - prometheus
 
+  # ─────────────────────────────────────────────
+  # 15. CLOUDFLARED — Public Quick Tunnel
+  # ─────────────────────────────────────────────
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --url http://api:8888
+    restart: unless-stopped
+    depends_on:
+      - api
+
 volumes:
   postgres-data:
   redis-data:

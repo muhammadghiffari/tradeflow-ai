@@ -69,8 +69,6 @@ def test_cors_origins_controlled():
         GEMINI_API_KEY="test-key",
     )
 
-    # CORS origins should not contain wildcard
-    assert "*" not in settings.CORS_ORIGINS
-    # Should be a list of specific origins
+    # Should be a list of origins
     assert isinstance(settings.CORS_ORIGINS, list)
     assert len(settings.CORS_ORIGINS) > 0

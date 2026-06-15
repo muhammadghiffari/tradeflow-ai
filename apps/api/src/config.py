@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: Literal["development", "staging", "production"] = "development"
     DEBUG: bool = False
     SECRET_KEY: SecretStr = Field(..., min_length=32)
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost"]
+    CORS_ORIGINS: list[str] = ["*"]
 
     # ── Database ──────────────────────────────────────────────────────────────
     DATABASE_URL: str  # asyncpg connection string e.g. postgresql+asyncpg://...

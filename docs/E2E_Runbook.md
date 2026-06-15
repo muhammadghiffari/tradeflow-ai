@@ -40,6 +40,31 @@ docker compose up -d --build
 
 ---
 
+## Phase 1: Hybrid Free Deployment (Vercel + Cloudflare Tunnel)
+
+For the public demo, you will want the heavy AI backend running locally on Radit's laptop (RTX 5050) while the frontend UI is hosted securely on Vercel for the judges to access via their phones/tablets.
+
+### 1. Get the Public Tunnel URL
+We have configured `cloudflared` to automatically create a secure tunnel to your local backend API. After running `docker compose up -d`, get your public URL:
+```bash
+docker compose logs cloudflared | grep -o 'https://.*\.trycloudflare\.com' | tail -n 1
+```
+*Copy the URL that looks like: `https://<random-words>.trycloudflare.com`*
+
+### 2. Deploy Frontend to Vercel
+1. Go to [Vercel.com](https://vercel.com) and click **Add New Project**.
+2. Import your `tradeflow-ai` GitHub repository.
+3. Set the **Root Directory** to `apps/web`.
+4. In the "Framework Preset", ensure **Next.js** is selected.
+5. Open **Environment Variables** and add:
+   - `NEXT_PUBLIC_API_URL` = `<your-trycloudflare-url-from-step-1>`
+6. Click **Deploy**.
+
+> [!WARNING]
+> **Important:** Because this is a free quick tunnel, every time you turn off Radit's laptop or restart `docker compose down`, the Cloudflare URL will change. You must update the `NEXT_PUBLIC_API_URL` in Vercel settings and click **Redeploy** before the demo session begins.
+
+---
+
 ## Pre-Demo Checklist (30 minutes before)
 
 Run this in order. Each step has a pass/fail signal.
