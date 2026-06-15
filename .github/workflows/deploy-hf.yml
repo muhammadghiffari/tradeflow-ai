@@ -1,0 +1,49 @@
+name: Deploy Backend to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/api/**'
+  workflow_dispatch: # Memungkinkan trigger manual dari tab Actions
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Deploy to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Konfigurasi Git
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          
+          # Kloning repo Space dari Hugging Face
+          git clone https://muhammadghiffari:$HF_TOKEN@huggingface.co/spaces/muhammadghiffari/TradeFlowAI hf-space
+          
+          # Salin semua isi apps/api ke dalam folder hf-space
+          cp -r apps/api/* hf-space/
+          
+          # Ubah port di Dockerfile dari 8888 menjadi 7860 (kebutuhan HF Spaces)
+          sed -i 's/"--port", "8888"/"--port", "7860"/g' hf-space/Dockerfile
+          
+          # Pindah ke direktori HF Space
+          cd hf-space
+          
+          # Tambahkan dan Commit perubahan
+          git add .
+          
+          if git diff --staged --quiet; then
+            echo "✅ Tidak ada perubahan kode backend yang perlu di-deploy."
+          else
+            git commit -m "Automated deployment from GitHub Actions: ${{ github.sha }}"
+            git push https://muhammadghiffari:$HF_TOKEN@huggingface.co/spaces/muhammadghiffari/TradeFlowAI main
+            echo "🚀 Backend berhasil di-deploy ke Hugging Face Spaces!"
+          fi

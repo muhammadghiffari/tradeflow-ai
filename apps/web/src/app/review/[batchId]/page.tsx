@@ -26,7 +26,7 @@ export default function OperatorReviewPage({ batchId }: OperatorReviewPageProps)
   const realtime = useBatchRealtime(batchId);
   const stream = useAgentStream(batchId);
 
-  const [batchData, setBatchData] = useState<Record<string, unknown> | null>(null);
+  const [batchData, setBatchData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

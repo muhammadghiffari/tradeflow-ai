@@ -85,10 +85,14 @@ Karena backend ini ringan di mode Cloud, Render Free Tier sangat cukup!
 Terakhir, kita mengarahkan Frontend ke Backend Render Anda.
 
 1. Di Dasbor Vercel, klik **Add New -> Project**.
-2. Import repository `tradeflow-ai`.
+2. Import repository `tradeflow-ai` dari GitHub Anda.
 3. Set **Root Directory** ke `apps/web`.
-4. Di bagian **Environment Variables**, tambahkan:
-   - `NEXT_PUBLIC_API_URL` = `<URL Render dari Langkah 2>`
+4. Di bagian **Environment Variables**, tambahkan list variabel berikut (sangat penting agar frontend bisa berkomunikasi dengan backend & database):
+   - `NEXT_PUBLIC_API_URL` = `<URL Backend Anda>` (Contoh: `https://muhammadghiffari-tradeflowai.hf.space` atau URL Render dari Langkah 2).
+   - `NEXT_PUBLIC_SUPABASE_URL` = `<Project URL Supabase Anda>` (Didapat dari Supabase: Project Settings -> API, sama seperti Langkah 1).
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = `<Anon Public Key Supabase Anda>` (Didapat dari Supabase: Project Settings -> API, sama seperti Langkah 1).
+   - `NEXTAUTH_URL` = `<URL Vercel Anda>` (Contoh: `https://tradeflow-ai.vercel.app` - Jika belum tahu, Anda bisa isi dengan URL production Anda nantinya, atau update setelah deploy pertama selesai).
+   - `NEXTAUTH_SECRET` = `<Password Acak>` (Isi dengan teks acak minimal 32 karakter, bebas. Ini untuk keamanan sesi login).
 5. Klik **Deploy**.
 
 ---
