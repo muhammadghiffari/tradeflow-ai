@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     PADDLEOCR_SVC_URL: AnyHttpUrl = "http://paddleocr-svc:8002"     # Agent B
     MINERU_SVC_URL: AnyHttpUrl = "http://mineru-svc:8003"           # Preprocessor
     OLM_BASE_MODEL: str = "allenai/olmOCR-2-7B-1025"
-    OLM_LORA_ADAPTER: str = "your-org/olm-ocr-cipl-v1"
+    OLM_LORA_ADAPTER: str = "muhammadghiffari/olm-ocr-cipl-v1"
     HF_TOKEN: SecretStr = ""  # type: ignore[assignment]
 
     # ── Azure Document Intelligence — Agent C ─────────────────────────────────

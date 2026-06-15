@@ -103,7 +103,7 @@ Key variables the agent must reference (never invent new names):
 SURYA_INFERENCE_URL          # http://surya-svc:8001
 OLM_INFERENCE_URL            # http://olm-inference:8000
 OLM_BASE_MODEL               # allenai/olmOCR-2-7B-1025
-OLM_LORA_ADAPTER             # your-org/olm-ocr-cipl-v1
+OLM_LORA_ADAPTER             # muhammadghiffari/olm-ocr-cipl-v1
 PADDLEOCR_SVC_URL            # http://paddleocr-svc:8002
 MINERU_SVC_URL               # http://mineru-svc:8003
 AZURE_DI_ENDPOINT

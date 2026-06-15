@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 OLM_BASE_MODEL = os.environ.get("OLM_BASE_MODEL", "allenai/olmOCR-2-7B-1025")
-OLM_LORA_ADAPTER = os.environ.get("OLM_LORA_ADAPTER", "your-org/olm-ocr-cipl-v1")
+OLM_LORA_ADAPTER = os.environ.get("OLM_LORA_ADAPTER", "muhammadghiffari/olm-ocr-cipl-v1")
 HF_HUB_CACHE = os.environ.get("HF_HUB_CACHE", "/data/models")
 ADAPTER_LOCAL_PATH = Path(HF_HUB_CACHE) / "adapters" / "cipl_adapter"
 

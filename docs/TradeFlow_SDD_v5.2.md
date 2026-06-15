@@ -184,7 +184,7 @@ class Settings(BaseSettings):
     paddleocr_svc_url: str = "http://paddleocr-svc:8002"
     mineru_svc_url: str = "http://mineru-svc:8003"
     olm_base_model: str = "allenai/olmOCR-2-7B-1025"
-    olm_lora_adapter: str = "your-org/olm-ocr-cipl-v1"
+    olm_lora_adapter: str = "muhammadghiffari/olm-ocr-cipl-v1"
     
     # Azure DI
     azure_di_endpoint: str
@@ -1605,7 +1605,7 @@ Vercel Project: tradeflow-web
 
 Model weights: HuggingFace Hub
 ├── allenai/olmOCR-2-7B-1025 (base)
-└── your-org/olm-ocr-cipl-v1 (LoRA adapter)
+└── muhammadghiffari/olm-ocr-cipl-v1 (LoRA adapter)
 
 Secrets: Doppler (synced to Railway environment)
 Container Registry: ghcr.io/{org}/tradeflow-ai/*

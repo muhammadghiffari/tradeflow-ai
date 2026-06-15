@@ -591,7 +591,7 @@ COPY . .
 # Weights downloaded at container startup — NOT during image build
 ENV HF_HUB_CACHE=/data/models
 ENV BASE_MODEL=allenai/olmOCR-2-7B-1025
-ENV LORA_ADAPTER=your-org/olm-ocr-cipl-v1
+ENV LORA_ADAPTER=muhammadghiffari/olm-ocr-cipl-v1
 CMD ["python", "serve.py"]
 ```
 
@@ -911,7 +911,7 @@ training_args = SFTConfig(
     # Push checkpoints to HuggingFace Hub during training
     report_to="wandb",
     push_to_hub=True,
-    hub_model_id="your-org/olm-ocr-cipl-v1",
+    hub_model_id="muhammadghiffari/olm-ocr-cipl-v1",
     hub_strategy="every_save",            # Upload mid-training (session timeout safety)
     resume_from_checkpoint="auto",        # Resume if session restarts
 )
@@ -2202,7 +2202,7 @@ SURYA_MODEL_VERSION=surya-2
 # olmOCR-2-7B-CIPL (self-hosted vLLM + LoRA)
 OLM_INFERENCE_URL=http://olm-inference:8000
 OLM_BASE_MODEL=allenai/olmOCR-2-7B-1025
-OLM_LORA_ADAPTER=your-org/olm-ocr-cipl-v1
+OLM_LORA_ADAPTER=muhammadghiffari/olm-ocr-cipl-v1
 OLM_MODEL_VERSION=olm-ocr-cipl-v1
 
 # PaddleOCR 3.0 (self-hosted)
