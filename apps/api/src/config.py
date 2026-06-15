@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     HF_TOKEN: SecretStr = ""  # type: ignore[assignment]
 
     # ── Azure Document Intelligence — Agent C ─────────────────────────────────
-    AZURE_DI_ENDPOINT: AnyHttpUrl = ""  # type: ignore[assignment]
+    AZURE_DI_ENDPOINT: str | None = None
     AZURE_DI_KEY: SecretStr = ""  # type: ignore[assignment]
     AZURE_DI_FREE_LIMIT: int = 5000   # Pages/month on F0 tier (Invariant #9)
 
