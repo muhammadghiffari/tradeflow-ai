@@ -19,6 +19,11 @@
   <br /><br />
 </div>
 
+> [!WARNING]
+> **Important Note for Judges & Reviewers:** 
+> - 🌐 **Live 24/7 Demo:** Runs on a $0 budget architecture using a lightweight **Google Gemini Fallback** to enable 24/7 access without a GPU. **This mode bypasses the Multi-Agent Orchestration.**
+> - 💻 **Run Locally (Docker):** This is the **TRUE TradeFlow AI experience**. It runs the complete LangGraph Multi-Agent Orchestration (Surya, PaddleOCR, Azure DI) and utilizes our custom **fine-tuned `olmOCR-2-7B-CIPL` model**. We highly recommend evaluating the Local Docker deployment or reviewing our Demo Video to witness the full orchestration architecture in action.
+
 **Predictive Customs Intelligence Platform**
 
 TradeFlow AI transforms fragmented CIPL trade documents (Bill of Lading, Packing List, Commercial Invoice) into validated, CEISA 4.0-compliant import declarations. Powered by a multi-agent Vision-Language Model ensemble, proactive rejection risk prediction, an immutable blockchain audit trail, and an adaptive learning system.

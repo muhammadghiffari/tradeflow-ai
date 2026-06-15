@@ -6,6 +6,11 @@ Arsitektur ini menggunakan **Mode Fallback**, di mana backend TradeFlow AI akan 
 
 Dengan begini, Backend Anda bisa berjalan di RAM sekecil 512MB (Render.com) sementara Frontend berada di Vercel.
 
+> [!WARNING]
+> **Penilaian Juri & Arsitektur Multi-Agent:**
+> Perlu diperhatikan bahwa mode 24/7 Cloud ini sengaja mematikan fitur **Multi-Agent Orchestration** (Surya, PaddleOCR, Azure DI) dan tidak memanggil model *fine-tuned* **`olmOCR-2-7B-CIPL`** karena keterbatasan hardware gratis. 
+> Untuk membuktikan kepada Juri bahwa algoritma orkestrasi Anda dan model *fine-tuning* benar-benar berfungsi, Anda **WAJIB** menunjukkan hasil *Run Locally (Docker)* di laptop ber-GPU, atau memandu mereka melihat dokumentasi/video demo lokal Anda!
+
 ---
 
 ## Prasyarat Akun (Semuanya Gratis)
