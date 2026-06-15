@@ -28,11 +28,12 @@ jobs:
           # Kloning repo Space dari Hugging Face
           git clone https://muhammadghiffari:$HF_TOKEN@huggingface.co/spaces/muhammadghiffari/TradeFlowAI hf-space
           
-          # Salin semua isi apps/api ke dalam folder hf-space
-          cp -r apps/api/* hf-space/
+          # Salin HANYA source code dan config, jangan timpa Dockerfile dan start.sh khusus HF
+          cp -r apps/api/src hf-space/
+          cp apps/api/pyproject.toml hf-space/
+          cp apps/api/uv.lock hf-space/
           
-          # Ubah port di Dockerfile dari 8888 menjadi 7860 (kebutuhan HF Spaces)
-          sed -i 's/"--port", "8888"/"--port", "7860"/g' hf-space/Dockerfile
+          # Tidak perlu sed karena Dockerfile asli HF tidak ditimpa
           
           # Pindah ke direktori HF Space
           cd hf-space
