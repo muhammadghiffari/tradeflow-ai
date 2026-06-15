@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import redis
 import structlog
-from langgraph.checkpoint.redis import RedisSaver
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 
 from ..config import settings
@@ -117,9 +117,8 @@ def get_compiled_graph():
     """
     workflow = build_extraction_graph()
 
-    # Redis checkpointer — stores full graph state per thread_id (batch_id)
-    redis_conn = redis.Redis.from_url(settings.REDIS_URL)
-    checkpointer = RedisSaver(redis_client=redis_conn)
+    # Using MemorySaver to support async ainvoke correctly
+    checkpointer = MemorySaver()
 
     graph = workflow.compile(checkpointer=checkpointer, interrupt_before=["human_review"])
 

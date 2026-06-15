@@ -121,7 +121,7 @@ def preprocess_document(self, batch_id: str) -> None:
     log.info("Starting extraction pipeline", batch_id=batch_id)
     try:
         config = {"configurable": {"thread_id": batch_id}}
-        context = asyncio.get_event_loop().run_until_complete(_load_batch_context(batch_id))
+        context = asyncio.run(_load_batch_context(batch_id))
         initial_state = {
             "batch_id": batch_id,
             "company_id": context["batch"].get("company_id") or "",
@@ -135,10 +135,10 @@ def preprocess_document(self, batch_id: str) -> None:
             "steps": [],
         }
         # Run sync wrapper around async graph
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             extraction_graph.ainvoke(initial_state, config=config)
         )
-        asyncio.get_event_loop().run_until_complete(_persist_graph_result(batch_id, result))
+        asyncio.run(_persist_graph_result(batch_id, result))
         log.info("Extraction pipeline complete", batch_id=batch_id)
     except Exception as exc:
         log.error("Pipeline failed", batch_id=batch_id, error=str(exc))
