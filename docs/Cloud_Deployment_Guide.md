@@ -57,7 +57,7 @@ Karena backend ini ringan di mode Cloud, Render Free Tier sangat cukup!
 > Render.com terkadang tetap meminta kartu kredit untuk verifikasi anti-bot di beberapa negara. Jika Anda tidak ingin/tidak punya kartu kredit, gunakan alternatif **Hugging Face Spaces (100% Gratis & Tanpa Kartu)**:
 > 1. Buat akun di [HuggingFace](https://huggingface.co).
 > 2. Buka [hf.co/spaces](https://huggingface.co/spaces) -> **Create New Space**.
-> 3. Pilih tipe **Docker** -> **Blank**. Visibilitas: *Public*.
+> 3. Pilih tipe **Docker** -> **Blank**. Visibilitas: *Public*. (Catatan: Abaikan/kosongkan bagian **Storage Bucket**, kita tidak membutuhkannya karena file disimpan di Supabase).
 > 4. Salin semua file dari folder `apps/api` ke dalam file-file Space Anda.
 > 5. Ubah isi file `Dockerfile` pada baris paling bawah menjadi port `7860`:
 >    `CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "7860"]`
