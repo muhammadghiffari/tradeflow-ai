@@ -58,11 +58,26 @@ Karena backend ini ringan di mode Cloud, Render Free Tier sangat cukup!
 > 1. Buat akun di [HuggingFace](https://huggingface.co).
 > 2. Buka [hf.co/spaces](https://huggingface.co/spaces) -> **Create New Space**.
 > 3. Pilih tipe **Docker** -> **Blank**. Visibilitas: *Public*. (Catatan: Abaikan/kosongkan bagian **Storage Bucket**, kita tidak membutuhkannya karena file disimpan di Supabase).
-> 4. Salin semua file dari folder `apps/api` ke dalam file-file Space Anda.
-> 5. Ubah isi file `Dockerfile` pada baris paling bawah menjadi port `7860`:
->    `CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "7860"]`
-> 6. Buka **Settings -> Variables and secrets**, dan masukkan semua konfigurasi `Environment Variables` dari Langkah 2 (CLOUD_LLM_ONLY, DATABASE_URL, dll).
-> 7. URL backend Anda sekarang adalah `https://<username>-<spacename>.hf.space`.
+> 4. Buka terminal/Command Prompt lokal Anda, lalu jalankan perintah ini (sesuaikan link clone dengan link Space Anda):
+>    ```bash
+>    # Kloning repo Space kosong Anda
+>    git clone https://huggingface.co/spaces/muhammadghiffari/TradeFlowAI hf-space
+>    
+>    # Salin semua isi backend (apps/api) ke dalam folder Space tersebut
+>    Copy-Item -Path ".\apps\api\*" -Destination ".\hf-space\" -Recurse
+>    
+>    # Masuk ke folder
+>    cd hf-space
+>    ```
+> 5. Buka file `Dockerfile` yang baru disalin ke dalam `hf-space`, lalu ubah angka `8888` pada baris paling bawah menjadi port `7860`.
+> 6. *Push* kode Anda kembali ke Hugging Face:
+>    ```bash
+>    git add .
+>    git commit -m "Deploy TradeFlow API"
+>    git push
+>    ```
+> 7. Buka tab **Settings -> Variables and secrets** di halaman Hugging Face Anda, lalu tambahkan *New Secret* untuk setiap konfigurasi dari Langkah 2 (CLOUD_LLM_ONLY=true, DATABASE_URL, GEMINI_API_KEY, dll).
+> 8. URL backend Anda sekarang adalah `https://muhammadghiffari-tradeflowai.hf.space` (URL ini yang dimasukkan ke Vercel nanti).
 
 ---
 
