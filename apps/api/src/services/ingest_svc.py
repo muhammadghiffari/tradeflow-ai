@@ -69,10 +69,8 @@ class StorageService:
         elif self.backend == "supabase":
             supabase = get_supabase()
             
-            # Ensure bucket exists
-            buckets = await supabase.storage.list_buckets()
-            if not any(b.name == self.bucket for b in buckets):
-                await supabase.storage.create_bucket(self.bucket, {"public": False})
+            # Skip bucket creation check because the bucket already exists
+            # and the storage3 client may have buggy create_bucket payload formatting.
 
             await supabase.storage.from_(self.bucket).upload(
                 object_path,
