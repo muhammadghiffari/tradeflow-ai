@@ -49,7 +49,20 @@ Karena backend ini ringan di mode Cloud, Render Free Tier sangat cukup!
    - `SUPABASE_SERVICE_KEY` = `<Service role key dari Langkah 1>`
    - `SUPABASE_JWT_SECRET` = `isi-dengan-minimal-32-karakter-bebas`
    - `GEMINI_API_KEY` = `<Gemini API Key Anda>`
-8. Klik **Create Web Service**. Tunggu hingga deploy selesai dan catat URL publiknya (misal: `https://tradeflow-api-xyz.onrender.com`).
+8. **PENTING: Scroll ke bawah dan pastikan Anda memilih *Instance Type* "Free" ($0/month).** Jika Anda tidak memilih "Free", Render akan meminta kartu kredit.
+9. Klik **Deploy Web Service**. Tunggu hingga deploy selesai dan catat URL publiknya (misal: `https://tradeflow-api-xyz.onrender.com`).
+
+> [!TIP]
+> **Dimintai Kartu Kredit oleh Render?**
+> Render.com terkadang tetap meminta kartu kredit untuk verifikasi anti-bot di beberapa negara. Jika Anda tidak ingin/tidak punya kartu kredit, gunakan alternatif **Hugging Face Spaces (100% Gratis & Tanpa Kartu)**:
+> 1. Buat akun di [HuggingFace](https://huggingface.co).
+> 2. Buka [hf.co/spaces](https://huggingface.co/spaces) -> **Create New Space**.
+> 3. Pilih tipe **Docker** -> **Blank**. Visibilitas: *Public*.
+> 4. Salin semua file dari folder `apps/api` ke dalam file-file Space Anda.
+> 5. Ubah isi file `Dockerfile` pada baris paling bawah menjadi port `7860`:
+>    `CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "7860"]`
+> 6. Buka **Settings -> Variables and secrets**, dan masukkan semua konfigurasi `Environment Variables` dari Langkah 2 (CLOUD_LLM_ONLY, DATABASE_URL, dll).
+> 7. URL backend Anda sekarang adalah `https://<username>-<spacename>.hf.space`.
 
 ---
 
