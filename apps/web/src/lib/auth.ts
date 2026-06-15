@@ -21,54 +21,40 @@ if (process.env.KEYCLOAK_ISSUER) {
   );
 }
 
-if (enableTestCredentials) {
-  providers.push(
-    Credentials({
-      id: "credentials",
-      name: "E2E Test Credentials",
-      credentials: {
-        username: { label: "Username", type: "text", placeholder: "e2e@test.local" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (credentials?.username === testUsername && credentials?.password === testPassword) {
-          return {
-            id: "e2e-user",
-            name: "E2E Test User",
-            email: testUsername,
-            roles: ["operator"],
-          };
-        }
-        return null;
-      },
-    }),
-  );
-}
-
-if (providers.length === 0) {
-  // Fallback to demo credentials to prevent Vercel build errors and allow Judges to login
-  providers.push(
-    Credentials({
-      id: "credentials",
-      name: "Demo Credentials (admin/admin)",
-      credentials: {
-        username: { label: "Username", type: "text", placeholder: "admin" },
-        password: { label: "Password", type: "password", placeholder: "admin" },
-      },
-      async authorize(credentials) {
-        if (credentials?.username === "admin" && credentials?.password === "admin") {
-          return {
-            id: "demo-user",
-            name: "Demo User",
-            email: "admin@tradeflow.ai",
-            roles: ["operator"],
-          };
-        }
-        return null;
-      },
-    }),
-  );
-}
+// Register credentials provider for demo & testing (always enabled as fallback)
+providers.push(
+  Credentials({
+    id: "credentials",
+    name: "Demo & Test Credentials",
+    credentials: {
+      username: { label: "Username", type: "text", placeholder: "admin" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials) {
+      if (credentials?.username === "admin" && credentials?.password === "admin") {
+        return {
+          id: "demo-user",
+          name: "Demo User",
+          email: "admin@tradeflow.ai",
+          roles: ["operator"],
+        };
+      }
+      if (
+        enableTestCredentials &&
+        credentials?.username === testUsername &&
+        credentials?.password === testPassword
+      ) {
+        return {
+          id: "e2e-user",
+          name: "E2E Test User",
+          email: testUsername,
+          roles: ["operator"],
+        };
+      }
+      return null;
+    },
+  }),
+);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-for-build-time-only-so-it-doesnt-crash",
