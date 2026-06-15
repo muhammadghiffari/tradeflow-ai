@@ -125,24 +125,24 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map(({ label, value, delta, up, icon: Icon, color, bg }) => (
-          <div key={label} className="glass-card p-5">
+          <div key={label} className="glass-card p-5 group hover:-translate-y-1 hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/[0.02] cursor-pointer">
             <div className="flex items-start justify-between">
-              <div className={cn("rounded-lg p-2", bg)}>
+              <div className={cn("rounded-xl p-2.5 transition-colors group-hover:bg-opacity-80", bg)}>
                 <Icon className={cn("h-4 w-4", color)} />
               </div>
               <span
                 className={cn(
-                  "flex items-center gap-0.5 text-xs font-medium",
-                  up ? "text-green-400" : "text-red-400",
+                  "flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full",
+                  up ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10",
                 )}
               >
                 {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                 {delta}
               </span>
             </div>
-            <div className="mt-3">
-              <p className="text-2xl font-bold">{value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+            <div className="mt-4">
+              <p className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-300">{value}</p>
+              <p className="text-xs text-slate-400 font-medium mt-1">{label}</p>
             </div>
           </div>
         ))}
@@ -151,10 +151,10 @@ export default function DashboardPage() {
       {/* Main content grid */}
       <div className="grid grid-cols-3 gap-6">
         {/* Recent batches — 2/3 */}
-        <div className="col-span-3 lg:col-span-2 glass-card overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-            <h2 className="font-semibold text-sm">Recent Declarations</h2>
-            <a href="/batches" className="text-xs text-primary hover:underline">
+        <div className="col-span-3 lg:col-span-2 glass-card overflow-hidden hover:border-white/15 transition-all duration-300">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/[0.01]">
+            <h2 className="font-semibold text-sm tracking-tight">Recent Declarations</h2>
+            <a href="/batches" className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 transition-colors">
               View all
             </a>
           </div>
@@ -163,11 +163,11 @@ export default function DashboardPage() {
               <a
                 key={b.id}
                 href={`/batches/${b.id}`}
-                className="flex items-center gap-4 px-6 py-3.5 hover:bg-white/[0.03] transition-colors"
+                className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.02] transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-mono font-medium text-foreground truncate">{b.ref}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{b.time}</p>
+                  <p className="text-sm font-mono font-semibold text-slate-200 truncate group-hover:text-cyan-400">{b.ref}</p>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">{b.time}</p>
                 </div>
                 <span
                   className={cn(
@@ -181,28 +181,30 @@ export default function DashboardPage() {
                           : "processing",
                   )}
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  <span className="h-1 w-1 rounded-full bg-current" />
                   {b.status}
                 </span>
                 <span
                   className={cn(
-                    "rounded-lg px-2 py-0.5 text-xs font-semibold",
+                    "rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wide",
                     RISK_CLASSES[b.risk],
                   )}
                 >
                   {b.risk}
                 </span>
-                <span className="text-sm font-bold w-8 text-right">{b.crs}</span>
+                <span className="text-sm font-bold w-10 text-right font-mono bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-300">{b.crs}</span>
               </a>
             ))}
           </div>
         </div>
 
         {/* CRS Summary — 1/3 */}
-        <div className="col-span-3 lg:col-span-1 glass-card flex flex-col items-center justify-center p-6 gap-4">
-          <h2 className="font-semibold text-sm self-start">Platform CRS Average</h2>
-          <CRSGauge score={82.4} grade="B" size={180} />
-          <div className="w-full space-y-2">
+        <div className="col-span-3 lg:col-span-1 glass-card flex flex-col items-center justify-between p-6 hover:border-white/15 transition-all duration-300">
+          <h2 className="font-semibold text-sm tracking-tight self-start">Platform CRS Average</h2>
+          <div className="my-4 py-2">
+            <CRSGauge score={82.4} grade="B" size={170} />
+          </div>
+          <div className="w-full space-y-2.5 border-t border-white/5 pt-4">
             {[
               { label: "Doc Quality", val: 92 },
               { label: "Completeness", val: 88 },
@@ -211,14 +213,14 @@ export default function DashboardPage() {
               { label: "HS Confidence", val: 76 },
             ].map(({ label, val }) => (
               <div key={label} className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-24 shrink-0">{label}</span>
-                <div className="flex-1 h-1.5 rounded-full bg-white/10">
+                <span className="text-xs text-slate-400 font-medium w-24 shrink-0">{label}</span>
+                <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-primary"
-                    style={{ width: `${val}%`, opacity: val / 100 + 0.3 }}
+                    className="h-full rounded-full bg-cyan-400 transition-all duration-500"
+                    style={{ width: `${val}%`, opacity: val / 100 + 0.2 }}
                   />
                 </div>
-                <span className="text-xs font-medium w-7 text-right">{val}</span>
+                <span className="text-xs font-mono font-semibold w-8 text-right text-slate-200">{val}</span>
               </div>
             ))}
           </div>

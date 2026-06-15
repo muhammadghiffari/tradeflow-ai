@@ -88,38 +88,44 @@ export default function UploadPage() {
     <div className="p-8 max-w-2xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Upload Documents</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h1 className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-300">Upload Documents</h1>
+        <p className="text-sm text-slate-400 mt-1.5 font-medium leading-relaxed">
           Upload your B/L, Packing List, and Invoice to begin AI-powered customs processing.
         </p>
       </div>
 
       {/* Document slots */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         {slots.map(({ slot, label, required, file }) => (
           <div key={slot} className="space-y-2">
-            <div className="flex items-center gap-2">
-              <label htmlFor={`upload-${slot}`} className="text-sm font-medium">
+            <div className="flex items-center justify-between">
+              <label htmlFor={`upload-${slot}`} className="text-sm font-semibold text-slate-300">
                 {label}
               </label>
-              {required && <span className="text-xs text-red-400">Required</span>}
-              {!required && <span className="text-xs text-muted-foreground">Optional</span>}
+              {required ? (
+                <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Required</span>
+              ) : (
+                <span className="text-[10px] font-bold text-slate-500 bg-white/5 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Optional</span>
+              )}
             </div>
 
             {file ? (
               /* File preview */
-              <div className="flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3">
-                <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
+              <div className="flex items-center gap-3 rounded-xl border border-green-500/20 bg-green-500/5 px-4 py-3.5 shadow-lg shadow-green-950/10 hover:border-green-500/30 transition-all duration-200">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-500/10 text-green-400">
+                  <CheckCircle2 className="h-5 w-5 shrink-0" />
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-semibold text-slate-200 truncate">{file.name}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 font-medium">
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setFile(slot, null)}
-                  className="text-muted-foreground hover:text-red-400 transition-colors"
+                  className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 p-1.5 rounded-lg transition-all"
+                  title="Remove file"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -127,7 +133,10 @@ export default function UploadPage() {
             ) : (
               /* Drop zone */
               <div
-                className={cn("drop-zone p-8 text-center", dragging === slot && "drag-over")}
+                className={cn(
+                  "rounded-2xl border-2 border-dashed border-white/5 bg-white/[0.01] p-8 text-center transition-all duration-300 cursor-pointer hover:border-cyan-500/30 hover:bg-cyan-500/[0.02]",
+                  dragging === slot && "border-cyan-400 bg-cyan-500/5 shadow-[0_0_20px_rgba(34,211,238,0.05)]",
+                )}
                 onDragOver={(e) => {
                   e.preventDefault();
                   setDragging(slot);
@@ -152,11 +161,11 @@ export default function UploadPage() {
                   accept=".pdf,.jpg,.jpeg,.png,.tiff,.xlsx"
                   onChange={(e) => handleFileInput(e, slot)}
                 />
-                <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  <span className="text-primary font-medium">Click to upload</span> or drag & drop
+                <Upload className="h-8 w-8 text-slate-500 mx-auto mb-3 transition-transform duration-300 group-hover:-translate-y-0.5" />
+                <p className="text-sm text-slate-400 font-medium">
+                  <span className="text-cyan-400 font-semibold hover:underline">Click to upload</span> or drag & drop
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-slate-500 mt-1 font-medium">
                   PDF, JPG, PNG, TIFF, XLSX · Max 50MB
                 </p>
               </div>
@@ -166,12 +175,12 @@ export default function UploadPage() {
       </div>
 
       {/* Info box */}
-      <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 flex items-start gap-3">
+      <div className="rounded-xl border border-blue-500/15 bg-blue-500/5 px-4 py-3.5 flex items-start gap-3">
         <AlertCircle className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-        <div className="text-xs text-muted-foreground space-y-1">
+        <div className="text-xs text-slate-400 space-y-1.5 font-medium leading-relaxed">
           <p>
             AI extraction begins immediately after upload. Processing typically takes{" "}
-            <strong className="text-foreground">2–5 minutes</strong>.
+            <strong className="text-slate-200 font-semibold">2–5 minutes</strong>.
           </p>
           <p>
             Documents are encrypted in transit and at rest. Audit trail is anchored on Polygon
@@ -186,15 +195,15 @@ export default function UploadPage() {
         onClick={handleSubmit}
         disabled={!allRequired || uploading}
         className={cn(
-          "w-full flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200",
+          "w-full flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-semibold transition-all duration-300",
           allRequired && !uploading
-            ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25"
-            : "bg-white/10 text-muted-foreground cursor-not-allowed",
+            ? "bg-cyan-500 text-slate-950 hover:bg-cyan-400 shadow-lg shadow-cyan-500/10 hover:scale-[1.01] active:scale-[0.99]"
+            : "bg-white/5 text-slate-500 cursor-not-allowed border border-white/5",
         )}
       >
         {uploading ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" /> Processing Upload…
+            <Loader2 className="h-4 w-4 animate-spin text-slate-950" /> Processing Upload…
           </>
         ) : (
           <>
