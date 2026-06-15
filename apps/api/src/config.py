@@ -142,6 +142,13 @@ class Settings(BaseSettings):
     CARRIER_PROFILES_PATH: str = "packages/db/carrier_profiles.json"
     XGBOOST_MODEL_PATH: str = "models/rejection_predictor.json"
 
+    # ── Storage ───────────────────────────────────────────────────────────────
+    STORAGE_BACKEND: Literal["supabase", "minio"] = "supabase"
+    STORAGE_BUCKET_NAME: str = "tradeflow-docs"
+    MINIO_ENDPOINT: str = "localhost:9000"
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: SecretStr = ""  # type: ignore[assignment]
+
     # ── Adaptive learning / drift ─────────────────────────────────────────────
     RETRAIN_MIN_NEW_SAMPLES: int = 100
     RETRAIN_MIN_TOTAL_SAMPLES: int = 500

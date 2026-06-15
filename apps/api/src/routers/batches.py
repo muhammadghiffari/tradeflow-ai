@@ -15,7 +15,7 @@ import mimetypes
 from pathlib import Path
 
 import structlog
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, BackgroundTasks
 from pydantic import BaseModel
 
 try:
@@ -56,6 +56,7 @@ def _is_allowed_magic_type(real_mime: str, claimed_mime: str | None) -> bool:
 async def create_batch(
     user: Annotated[CurrentUser, Depends(get_current_user)],
     supabase: Annotated[AsyncClient, Depends(get_supabase)],
+    background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     doc_types: list[str] | None = Form(None),
 ) -> dict[str, Any]:  # noqa: B008
@@ -150,7 +151,11 @@ async def create_batch(
     await supabase.table("batches").update({"status": "preprocessing"}).eq("id", batch_id).execute()
 
     queue = "high" if user.is_enterprise else "default"
-    preprocess_document.apply_async(args=[batch_id], queue=queue)
+    try:
+        preprocess_document.apply_async(args=[batch_id], queue=queue)
+    except Exception as e:
+        log.warning("Celery apply_async failed, falling back to BackgroundTasks", error=str(e))
+        background_tasks.add_task(preprocess_document, batch_id)
 
     log.info("Batch created", batch_id=batch_id, user=user.id, docs=len(files), tier=user.tier)
     return {"batch_id": batch_id, "status": "preprocessing", "documents": documents}
@@ -246,6 +251,7 @@ async def submit_to_ceisa_endpoint(
     batch_id: str,
     user: Annotated[CurrentUser, Depends(require_operator)],
     supabase: Annotated[AsyncClient, Depends(get_supabase)],
+    background_tasks: BackgroundTasks,
 ) -> dict[str, Any]:
     """Manually trigger CEISA submission after review approval."""
     from ..tasks.submit_tasks import submit_to_ceisa
@@ -257,7 +263,12 @@ async def submit_to_ceisa_endpoint(
         "status": "queued",
     }).execute()
 
-    submit_to_ceisa.apply_async(args=[batch_id, submission_id], queue="high")
+    try:
+        submit_to_ceisa.apply_async(args=[batch_id, submission_id], queue="high")
+    except Exception as e:
+        log.warning("Celery apply_async failed for submit_to_ceisa, falling back to BackgroundTasks", error=str(e))
+        background_tasks.add_task(submit_to_ceisa, batch_id, submission_id)
+
     return {"status": "queued", "submission_id": submission_id}
 
 
