@@ -4,6 +4,8 @@
 [![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/muhammadghiffari/tradeflow-ai)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-FF6B6B?style=for-the-badge)](https://langchain-ai.github.io/langgraph/)
 [![CEISA 4.0](https://img.shields.io/badge/CEISA_4.0-Ready-00A65A?style=for-the-badge)](https://ceisa40.customs.go.id/)
+[![Accuracy](https://img.shields.io/badge/OCR_Accuracy-90.59%25_ANLS-8A2BE2?style=for-the-badge)](#)
+[![INSW](https://img.shields.io/badge/INSW_Detection-100%25-00C851?style=for-the-badge)](#)
 
 **Predictive Customs Intelligence Platform**
 

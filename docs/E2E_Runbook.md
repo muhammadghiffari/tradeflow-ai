@@ -244,7 +244,7 @@ Memorize these — judges will ask:
 > HS code 28151110 — that's exactly what we showed. The INSW pre-check runs before CEISA submission. If a DG permit isn't provided, submission is blocked. The operator sees exactly which HS code triggered the flag and what permit type is required.
 
 **"How do you know it's accurate?"**  
-> We evaluated on 8 real carrier documents from HLCU, MSCU, MAEU, EGLV, and CSLU — the actual carriers operating Indonesian routes. Ground truth was manually annotated field by field. Results: 96% on digital PDFs, 87% on scans. The eval set is in the repository.
+> We evaluated on 8 real carrier documents from HLCU, MSCU, MAEU, EGLV, and CSLU — the actual carriers operating Indonesian routes. Ground truth was manually annotated field by field. Results: **90.59% Weighted ANLS** on mixed realistic documents, with **100% INSW detection accuracy**. The eval set and Jupyter notebooks are fully reproducible in the repository.
 
 **"What's the path to production?"**  
 > Three steps: (1) CDP files DJBC H2H registration — 4–12 weeks processing. (2) Change `CEISA_BASE_URL` from simulator to production. (3) Obtain Polygon PoS wallet for mainnet anchoring. The code doesn't change. The simulator validates that the wire protocol is correct.
