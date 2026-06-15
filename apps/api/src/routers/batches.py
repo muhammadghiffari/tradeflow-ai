@@ -61,7 +61,8 @@ async def create_batch(
     doc_types: list[str] | None = Form(None),
 ) -> dict[str, Any]:  # noqa: B008
     """Upload documents and create a new processing batch."""
-    if not user.company_id:
+    from ..config import settings
+    if not user.company_id and not settings.DISABLE_AUTH:
         raise HTTPException(status_code=400, detail="User is not associated with a company.")
     if len(files) > 3:
         raise HTTPException(status_code=400, detail="Maximum 3 files per batch (B/L, Invoice, Packing List).")
