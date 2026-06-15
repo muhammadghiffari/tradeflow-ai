@@ -42,12 +42,22 @@ from ..config import settings
 from celery.signals import worker_process_init
 import asyncio
 
+_worker_loop = None
+
 @worker_process_init.connect
 def init_celery_worker(**kwargs):
+    global _worker_loop
     from ..dependencies import init_supabase
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(init_supabase())
+    _worker_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(_worker_loop)
+    _worker_loop.run_until_complete(init_supabase())
+
+def get_worker_loop():
+    global _worker_loop
+    if _worker_loop is None:
+        _worker_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_worker_loop)
+    return _worker_loop
 
 # ── Celery app ────────────────────────────────────────────────────────────────
 celery_app = Celery(

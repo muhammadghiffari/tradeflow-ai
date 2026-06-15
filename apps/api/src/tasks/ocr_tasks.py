@@ -120,7 +120,8 @@ def preprocess_document(self, batch_id: str) -> None:
     from ..ai.graph import extraction_graph
     log.info("Starting extraction pipeline", batch_id=batch_id)
     try:
-        loop = asyncio.get_event_loop()
+        from .celery_app import get_worker_loop
+        loop = get_worker_loop()
         config = {"configurable": {"thread_id": batch_id}}
         context = loop.run_until_complete(_load_batch_context(batch_id))
         initial_state = {
