@@ -130,6 +130,17 @@ async def get_current_user(
     """
     token = credentials.credentials
 
+    if settings.DISABLE_AUTH:
+        return CurrentUser(
+            sub="demo-bypass-user",
+            email="admin@tradeflow.ai",
+            full_name="Demo User",
+            roles=["admin", "operator", "supervisor", "sme"],
+            tier="enterprise",
+            company_id="demo-bypass-user",
+            raw_token=token,
+        )
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired authentication token",
