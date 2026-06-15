@@ -128,6 +128,8 @@ class Settings(BaseSettings):
     DETERMINISTIC_E2E: bool = False  # Used in extract.py to swap LLM for deterministic mock
 
     # ── Thresholds ────────────────────────────────────────────────────────────
+    OCR_MAX_RENDERED_PAGES: int = 10
+    OCR_MAX_LLM_PAGES: int = 5
     OCR_FAST_PATH_QUALITY_THRESHOLD: float = 0.95
     OCR_RECONCILIATION_DISAGREEMENT_THRESHOLD: float = 0.20
     LLM_CONFIDENCE_REVIEW_THRESHOLD: float = 0.70
