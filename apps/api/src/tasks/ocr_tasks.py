@@ -17,7 +17,7 @@ async def _load_batch_context(batch_id: str) -> dict:
 
     from ..config import settings
 
-    supabase = await acreate_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
+    supabase = await acreate_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY.get_secret_value())
     try:
         batch_res = await (
             supabase.table("batches").select("*").eq("id", batch_id).single().execute()
@@ -43,7 +43,7 @@ async def _load_batch_context(batch_id: str) -> dict:
         ]
         return {"batch": batch, "documents": documents}
     finally:
-        await supabase.aclose()
+        pass
 
 
 async def _persist_graph_result(batch_id: str, result: dict) -> None:
@@ -52,7 +52,7 @@ async def _persist_graph_result(batch_id: str, result: dict) -> None:
 
     from ..config import settings
 
-    supabase = await acreate_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
+    supabase = await acreate_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY.get_secret_value())
     try:
         await supabase.table("extracted_fields").delete().eq("batch_id", batch_id).execute()
         await supabase.table("validation_results").delete().eq("batch_id", batch_id).execute()
@@ -104,7 +104,7 @@ async def _persist_graph_result(batch_id: str, result: dict) -> None:
             "langgraph_thread_id": batch_id,
         }).eq("id", batch_id).execute()
     finally:
-        await supabase.aclose()
+        pass
 
 
 def _average_confidence(confidences: dict) -> float:

@@ -48,7 +48,7 @@ async def init_supabase() -> None:
 async def close_supabase() -> None:
     global _supabase_client
     if _supabase_client:
-        await _supabase_client.aclose()
+        pass
         _supabase_client = None
 
 
