@@ -130,12 +130,12 @@ async def get_current_user(
     """
     if settings.DISABLE_AUTH:
         return CurrentUser(
-            sub="demo-bypass-user",
+            sub=None,  # type: ignore
             email="admin@tradeflow.ai",
             full_name="Demo User",
             roles=["admin", "operator", "supervisor", "sme"],
             tier="enterprise",
-            company_id="demo-bypass-user",
+            company_id=None,
             raw_token="demo-token",
         )
 
