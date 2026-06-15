@@ -103,11 +103,12 @@ def create_app() -> FastAPI:
     app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 
     # ── Prometheus metrics (optional) ────────────────────────────
-    if Instrumentator is not None:
-        Instrumentator(
-            should_group_status_codes=True,
-            should_ignore_untemplated=True,
-        ).instrument(app).expose(app, endpoint="/metrics")
+    # Disabled for HF Spaces deployment due to middleware crash on _IncludedRouter
+    # if Instrumentator is not None:
+    #     Instrumentator(
+    #         should_group_status_codes=True,
+    #         should_ignore_untemplated=True,
+    #     ).instrument(app).expose(app, endpoint="/metrics")
 
     # ── OpenTelemetry (optional) ─────────────────────────────────
     if settings.OTEL_ENABLED and FastAPIInstrumentor is not None:
