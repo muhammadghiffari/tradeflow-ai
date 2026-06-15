@@ -81,7 +81,7 @@ def get_keycloak_jwks() -> dict:
 
 
 # ── JWT Bearer scheme ─────────────────────────────────────────────────────────
-bearer_scheme = HTTPBearer(auto_error=True)
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 class CurrentUser:
@@ -121,15 +121,13 @@ class CurrentUser:
 
 
 async def get_current_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     supabase: Annotated[AsyncClient, Depends(get_supabase)],
 ) -> CurrentUser:
     """
     Validate Keycloak RS256 JWT and return enriched user.
     PRD §4 Decision 2: verify against Keycloak JWKS endpoint.
     """
-    token = credentials.credentials
-
     if settings.DISABLE_AUTH:
         return CurrentUser(
             sub="demo-bypass-user",
@@ -138,7 +136,7 @@ async def get_current_user(
             roles=["admin", "operator", "supervisor", "sme"],
             tier="enterprise",
             company_id="demo-bypass-user",
-            raw_token=token,
+            raw_token="demo-token",
         )
 
     credentials_exception = HTTPException(
@@ -146,6 +144,15 @@ async def get_current_user(
         detail="Invalid or expired authentication token",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = credentials.credentials
 
     try:
         jwks = get_keycloak_jwks()
