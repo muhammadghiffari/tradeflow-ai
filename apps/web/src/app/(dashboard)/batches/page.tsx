@@ -3,71 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Search, Filter, ArrowUpRight, ArrowDownRight, RefreshCw, FileText, CheckCircle2, AlertTriangle, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-
-// Mock database of declarations
-const MOCK_DECLARATIONS = [
-  {
-    id: "b-001",
-    ref: "PIB-A1B2C3D4E5",
-    type: "Import Declaration (PIB)",
-    status: "accepted",
-    crs: 88,
-    grade: "B",
-    risk: "LOW",
-    time: "2 minutes ago",
-    date: "Jun 15, 2026 13:35",
-    importer: "PT Global Logistics",
-  },
-  {
-    id: "b-002",
-    ref: "PIB-F6G7H8I9J0",
-    type: "Import Declaration (PIB)",
-    status: "review_ready",
-    crs: 65,
-    grade: "D",
-    risk: "HIGH",
-    time: "15 minutes ago",
-    date: "Jun 15, 2026 13:22",
-    importer: "PT Nusantara Import",
-  },
-  {
-    id: "b-003",
-    ref: "PIB-K1L2M3N4O5",
-    type: "Import Declaration (PIB)",
-    status: "accepted",
-    crs: 95,
-    grade: "A",
-    risk: "LOW",
-    time: "1 hour ago",
-    date: "Jun 15, 2026 12:30",
-    importer: "PT Indo Lestari Utama",
-  },
-  {
-    id: "b-004",
-    ref: "PIB-P6Q7R8S9T0",
-    type: "Import Declaration (PIB)",
-    status: "rejected",
-    crs: 42,
-    grade: "F",
-    risk: "CRITICAL",
-    time: "2 hours ago",
-    date: "Jun 15, 2026 11:15",
-    importer: "PT Citra Mandiri Abadi",
-  },
-  {
-    id: "b-005",
-    ref: "PIB-U1V2W3X4Y5",
-    type: "Import Declaration (PIB)",
-    status: "processing",
-    crs: 72,
-    grade: "C",
-    risk: "MEDIUM",
-    time: "3 hours ago",
-    date: "Jun 15, 2026 10:05",
-    importer: "PT Sinar Sejahtera",
-  },
-];
+import { useState, useEffect } from "react";
 
 const STATUS_FILTERS = ["all", "processing", "review_ready", "accepted", "rejected"];
 
@@ -81,12 +17,31 @@ const RISK_BADGES: Record<string, string> = {
 export default function BatchesPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [declarations, setDeclarations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredDeclarations = MOCK_DECLARATIONS.filter((dec) => {
+  useEffect(() => {
+    const fetchBatches = async () => {
+      try {
+        const res = await fetch("/api/v1/batches");
+        if (res.ok) {
+          const data = await res.json();
+          setDeclarations(data.batches || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch batches", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBatches();
+  }, []);
+
+  const filteredDeclarations = declarations.filter((dec) => {
     const matchesTab = activeTab === "all" || dec.status === activeTab;
     const matchesSearch =
-      dec.ref.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      dec.importer.toLowerCase().includes(searchQuery.toLowerCase());
+      (dec.ref || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (dec.importer || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
 

@@ -4,95 +4,9 @@ import { CRSGauge } from "@/components/crs-gauge";
 import { cn, formatDate } from "@/lib/utils";
 import { AlertTriangle, CheckCircle2, ChevronRight, Shield, XCircle, ArrowLeft, Loader2, ArrowRight } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
-
-// ── Batch detail mock (replace with real fetch in Phase 5) ───────────────────────────────
-const MOCK_BATCH = {
-  id: "b-002",
-  ref: "PIB-F6G7H8I9J0",
-  status: "review_ready",
-  customs_readiness_score: 65,
-  crs_grade: "D",
-  risk_level: "HIGH",
-  rejection_probability: 0.38,
-  created_at: "2026-06-15T13:22:00Z",
-  expires_at: "2026-06-17T13:22:00Z",
-  ceisa_reference: null,
-  blockchain_tx_hash: null,
-  importer: "PT Nusantara Import",
-};
-
-const MOCK_FIELDS = [
-  {
-    ceisa_field: "importer_name",
-    extracted_value: "PT NUSANTARA IMPORT",
-    confidence: 0.98,
-    confidence_level: "HIGH",
-  },
-  {
-    ceisa_field: "importer_npwp",
-    extracted_value: "12.345.678.9-012.000",
-    confidence: 0.95,
-    confidence_level: "HIGH",
-  },
-  {
-    ceisa_field: "total_packages",
-    extracted_value: "48 koli",
-    confidence: 0.72,
-    confidence_level: "MEDIUM",
-  },
-  {
-    ceisa_field: "gross_weight",
-    extracted_value: "1240.5 kg",
-    confidence: 0.89,
-    confidence_level: "HIGH",
-  },
-  {
-    ceisa_field: "cif_value",
-    extracted_value: "28500",
-    confidence: 0.61,
-    confidence_level: "LOW",
-  },
-  {
-    ceisa_field: "currency",
-    extracted_value: "USD",
-    confidence: 0.99,
-    confidence_level: "HIGH",
-  },
-];
-
-const MOCK_VALIDATIONS = [
-  {
-    rule_id: "CV001",
-    rule_name: "Package Count Consistency",
-    severity: "CRITICAL_FAIL",
-    error_message: "Jumlah koli B/L (48) ≠ Packing List (50)",
-    resolved: false,
-  },
-  {
-    rule_id: "CV002",
-    rule_name: "CIF Value Consistency",
-    severity: "WARNING",
-    error_message: "Selisih 4.2% dari nilai yang dihitung",
-    resolved: false,
-  },
-  {
-    rule_id: "CV004",
-    rule_name: "Invoice Currency Match",
-    severity: "PASS",
-    error_message: null,
-    resolved: true,
-  },
-  {
-    rule_id: "CV006",
-    rule_name: "HS Code Format",
-    severity: "PASS",
-    error_message: null,
-    resolved: true,
-  },
-];
 
 const SEVERITY_ICON = {
   PASS: <CheckCircle2 className="h-4 w-4 text-green-400" />,
@@ -111,7 +25,49 @@ export default function BatchDetailPage() {
   const router = useRouter();
   const [corrections, setCorrections] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const batch = MOCK_BATCH;
+  const [batchData, setBatchData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let timeoutId: any;
+    const fetchBatch = async () => {
+      try {
+        const res = await fetch(`/api/v1/batches/${id}`);
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        setBatchData(data);
+        setError(null);
+        
+        if (data.batch.status === "preprocessing" || data.batch.status === "processing") {
+          timeoutId = setTimeout(fetchBatch, 5000);
+        } else {
+          setLoading(false);
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch batch");
+        setLoading(false);
+      }
+    };
+    fetchBatch();
+    return () => clearTimeout(timeoutId);
+  }, [id]);
+
+  const batch = batchData?.batch || {};
+  const MOCK_VALIDATIONS = batchData?.validation_results || [];
+  
+  // Transform backend fields to match UI expectations
+  const MOCK_FIELDS = (batchData?.extracted_fields || []).map((f: any) => ({
+    ...f,
+    confidence_level: f.confidence > 0.85 ? "HIGH" : f.confidence > 0.65 ? "MEDIUM" : "LOW"
+  }));
+
+  if (loading && !batchData) {
+    return <div className="p-20 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-slate-500" /></div>;
+  }
+  if (error) {
+    return <div className="p-20 text-center text-red-400">{error}</div>;
+  }
 
   const handleCorrection = (field: string, value: string) => {
     setCorrections((prev) => ({ ...prev, [field]: value }));
