@@ -68,24 +68,18 @@ class StorageService:
 
         elif self.backend == "supabase":
             supabase = get_supabase()
-            # Note: storage uploads are synchronous in python supabase client atm,
-            # but we run it inside our async path. Ideally wrap in asyncio.to_thread
-            import asyncio
+            
+            # Ensure bucket exists
+            buckets = await supabase.storage.list_buckets()
+            if not any(b.name == self.bucket for b in buckets):
+                await supabase.storage.create_bucket(self.bucket, {"public": False})
 
-            def _upload():
-                # Ensure bucket exists
-                buckets = supabase.storage.list_buckets()
-                if not any(b.name == self.bucket for b in buckets):
-                    supabase.storage.create_bucket(self.bucket, {"public": False})
+            await supabase.storage.from_(self.bucket).upload(
+                object_path,
+                file_bytes,
+                {"content-type": content_type}
+            )
 
-                res = supabase.storage.from_(self.bucket).upload(
-                    object_path,
-                    file_bytes,
-                    {"content-type": content_type}
-                )
-                return res
-
-            await asyncio.to_thread(_upload)
             log.info("Uploaded to Supabase Storage", path=object_path)
             return object_path
 
@@ -104,12 +98,7 @@ class StorageService:
 
         if self.backend == "supabase":
             supabase = get_supabase()
-            import asyncio
-
-            def _download() -> bytes:
-                return supabase.storage.from_(self.bucket).download(object_path)
-
-            data = await asyncio.to_thread(_download)
+            data = await supabase.storage.from_(self.bucket).download(object_path)
             return bytes(data)
 
         raise ValueError(f"Unknown storage backend: {self.backend}")
@@ -118,7 +107,7 @@ class StorageService:
         """Compute SHA-256 hash of the file."""
         return hashlib.sha256(file_bytes).hexdigest()
 
-    def get_presigned_url(self, object_path: str, expires_in: int = 3600) -> str:
+    async def get_presigned_url(self, object_path: str, expires_in: int = 3600) -> str:
         """Generate a presigned URL for preview/download."""
         if self.backend == "minio":
             return self.s3_client.generate_presigned_url(
@@ -129,7 +118,7 @@ class StorageService:
         elif self.backend == "supabase":
             # For Supabase, we can use create_signed_url
             supabase = get_supabase()
-            res = supabase.storage.from_(self.bucket).create_signed_url(object_path, expires_in)
+            res = await supabase.storage.from_(self.bucket).create_signed_url(object_path, expires_in)
             return res.get("signedURL", "")
         return ""
 
