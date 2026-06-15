@@ -102,8 +102,8 @@ class Settings(BaseSettings):
 
     # ── AI / LLM ─────────────────────────────────────────────────────────────
     GEMINI_API_KEY: SecretStr = Field(..., description="Google Gemini API key")
-    GEMINI_MODEL_PRIMARY: str = "gemini-1.5-pro"
-    GEMINI_MODEL_FALLBACK: str = "gemini-1.5-flash"
+    GEMINI_MODEL_PRIMARY: str = "gemini-2.5-pro"
+    GEMINI_MODEL_FALLBACK: str = "gemini-2.5-flash"
     OPENAI_API_KEY: SecretStr = ""  # type: ignore[assignment]
     EMBEDDING_MODEL: str = "text-embedding-3-small"
 
