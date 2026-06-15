@@ -61,6 +61,12 @@ async def verify_keycloak_token(token: str) -> dict[str, Any]:
     Returns the decoded payload (claims) on success.
     Raises HTTP 401 on any failure.
     """
+    if settings.DISABLE_AUTH:
+        return {
+            "sub": "demo-bypass-user",
+            "realm_access": {"roles": ["operator", "admin", "supervisor", "sme"]},
+        }
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

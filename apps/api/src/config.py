@@ -38,12 +38,14 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_KEY: SecretStr
     SUPABASE_JWT_SECRET: SecretStr
 
+    DISABLE_AUTH: bool = False
+
     # ── Keycloak 26 — SOLE auth provider (Invariant #4) ───────────────────────
-    KEYCLOAK_SERVER_URL: str
+    KEYCLOAK_SERVER_URL: str = ""
     KEYCLOAK_REALM: str = "tradeflow"
     KEYCLOAK_CLIENT_ID: str = "tradeflow-api"
-    KEYCLOAK_CLIENT_SECRET: SecretStr
-    KEYCLOAK_ISSUER: str
+    KEYCLOAK_CLIENT_SECRET: SecretStr = ""  # type: ignore[assignment]
+    KEYCLOAK_ISSUER: str = ""
 
     @property
     def KEYCLOAK_JWKS_URL(self) -> str:
