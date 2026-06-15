@@ -68,7 +68,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       if (!account && user && typeof user === "object" && "roles" in user) {
-        // @ts-expect-error user can carry custom fields from credentials provider
         token.roles = user.roles;
       }
       return token;
