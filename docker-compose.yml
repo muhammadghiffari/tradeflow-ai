@@ -128,7 +128,7 @@ services:
     environment:
       HF_HUB_CACHE: /data/models
       OLM_BASE_MODEL: ${OLM_BASE_MODEL:-allenai/olmOCR-2-7B-1025}
-      OLM_LORA_ADAPTER: ${OLM_LORA_ADAPTER:-your-org/olm-ocr-cipl-v1}
+      OLM_LORA_ADAPTER: ${OLM_LORA_ADAPTER:-muhammadghiffari/olm-ocr-cipl-v1}
       HF_TOKEN: ${HF_TOKEN:-}
       PORT: 8000
     volumes:
