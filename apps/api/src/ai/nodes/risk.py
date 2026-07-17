@@ -115,6 +115,15 @@ async def risk_assessment_node(state: ExtractionGraphState) -> dict:
     )
     crs_score = round(crs_raw * 100, 2)
     crs_grade = _crs_to_grade(crs_score)
+    critical_failures = sum(1 for r in validation_results if r.get("severity") == "CRITICAL_FAIL")
+    warnings = sum(1 for r in validation_results if r.get("severity") == "WARNING")
+
+    if critical_failures:
+        crs_score = min(crs_score, 55.0)
+        crs_grade = _crs_to_grade(crs_score)
+    elif warnings:
+        crs_score = min(crs_score, 75.0)
+        crs_grade = _crs_to_grade(crs_score)
 
     features = {
         "doc_quality_score": p_quality,
@@ -127,6 +136,10 @@ async def risk_assessment_node(state: ExtractionGraphState) -> dict:
         "gross_weight_kg": float(combined_data.get("gross_weight") or 0.0),
     }
     rejection_prob = round(rejection_predictor.predict_proba(features), 4)
+    if critical_failures:
+        rejection_prob = max(rejection_prob, 0.65)
+    elif warnings:
+        rejection_prob = max(rejection_prob, 0.30)
     risk_level = _probability_to_risk(rejection_prob)
 
     # PRD §13 Invariant: CRS < 70 → must NOT auto-submit
@@ -147,6 +160,10 @@ async def risk_assessment_node(state: ExtractionGraphState) -> dict:
 
     return {
         "risk_level": risk_level,
+        "customs_readiness_score": crs_score,
+        "crs_grade": crs_grade,
+        "rejection_probability": rejection_prob,
+        "risk_features": features,
         "needs_human_review": needs_human_review,
         "steps": ["risk_assessment"],
         # NOTE: crs_score and rejection_prob are persisted to DB in the

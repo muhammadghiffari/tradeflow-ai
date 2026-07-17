@@ -1,11 +1,12 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Search, Filter, ArrowUpRight, ArrowDownRight, RefreshCw, FileText, CheckCircle2, AlertTriangle, XCircle, Loader2 } from "lucide-react";
+import { cn, formatDate, statusToClass } from "@/lib/utils";
+import { Search, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
 const STATUS_FILTERS = ["all", "processing", "review_ready", "accepted", "rejected"];
+const PROCESSING_STATUSES = new Set(["uploaded", "preprocessing", "ocr_running", "extracting", "validating", "processing"]);
 
 const RISK_BADGES: Record<string, string> = {
   LOW: "text-green-400 bg-green-500/10 border border-green-500/20",
@@ -13,6 +14,10 @@ const RISK_BADGES: Record<string, string> = {
   HIGH: "text-orange-400 bg-orange-500/10 border border-orange-500/20",
   CRITICAL: "text-red-400 bg-red-500/10 border border-red-500/20",
 };
+
+function formatBatchRef(id?: string) {
+  return id ? `PIB-${id.slice(0, 8).toUpperCase()}` : "PIB-PENDING";
+}
 
 export default function BatchesPage() {
   const [activeTab, setActiveTab] = useState("all");
@@ -38,9 +43,14 @@ export default function BatchesPage() {
   }, []);
 
   const filteredDeclarations = declarations.filter((dec) => {
-    const matchesTab = activeTab === "all" || dec.status === activeTab;
+    const ref = formatBatchRef(dec.id);
+    const status = dec.status || "uploaded";
+    const matchesTab =
+      activeTab === "all" ||
+      status === activeTab ||
+      (activeTab === "processing" && PROCESSING_STATUSES.has(status));
     const matchesSearch =
-      (dec.ref || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ref.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (dec.importer || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
@@ -112,18 +122,39 @@ export default function BatchesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-sm text-slate-300">
-              {filteredDeclarations.length > 0 ? (
-                filteredDeclarations.map((dec) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-500 font-medium">
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading live declarations...
+                    </span>
+                  </td>
+                </tr>
+              ) : filteredDeclarations.length > 0 ? (
+                filteredDeclarations.map((dec) => {
+                  const status = dec.status || "uploaded";
+                  const risk = dec.risk_level || "PENDING";
+                  const grade = dec.crs_grade || (PROCESSING_STATUSES.has(status) ? "..." : "B");
+                  const score =
+                    typeof dec.customs_readiness_score === "number"
+                      ? Math.round(dec.customs_readiness_score)
+                      : PROCESSING_STATUSES.has(status)
+                        ? "..."
+                        : 0;
+                  const isProcessing = PROCESSING_STATUSES.has(status);
+
+                  return (
                   <tr key={dec.id} className="hover:bg-white/[0.01] transition-colors">
                     {/* Ref & Type */}
                     <td className="py-4 px-6 font-mono">
-                      <div className="font-semibold text-slate-200">{dec.ref}</div>
-                      <div className="text-[10px] text-slate-500 font-medium tracking-wide mt-0.5 uppercase">{dec.type}</div>
+                      <div className="font-semibold text-slate-200">{formatBatchRef(dec.id)}</div>
+                      <div className="text-[10px] text-slate-500 font-medium tracking-wide mt-0.5 uppercase">CIPL Set</div>
                     </td>
 
                     {/* Importer */}
                     <td className="py-4 px-6 font-medium text-slate-300">
-                      {dec.importer}
+                      {dec.importer || "Pending extraction"}
                     </td>
 
                     {/* Status Pill */}
@@ -131,21 +162,18 @@ export default function BatchesPage() {
                       <span
                         className={cn(
                           "status-pill inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold",
-                          dec.status === "accepted" && "accepted",
-                          dec.status === "rejected" && "rejected",
-                          dec.status === "review_ready" && "review",
-                          dec.status === "processing" && "processing",
+                          statusToClass(status),
                         )}
                       >
                         <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                        {dec.status.replace("_", " ")}
+                        {status.replace("_", " ")}
                       </span>
                     </td>
 
                     {/* Risk Badge */}
                     <td className="py-4 px-6">
-                      <span className={cn("inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase border", RISK_BADGES[dec.risk])}>
-                        {dec.risk} RISK
+                      <span className={cn("inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase border", RISK_BADGES[risk] || "text-slate-400 bg-white/5 border-white/10")}>
+                        {risk} RISK
                       </span>
                     </td>
 
@@ -154,32 +182,33 @@ export default function BatchesPage() {
                       <span
                         className={cn(
                           "inline-block px-2.5 py-1 rounded-lg text-sm",
-                          dec.grade === "A" && "text-green-400 bg-green-500/5 border border-green-500/10",
-                          dec.grade === "B" && "text-blue-400 bg-blue-500/5 border border-blue-500/10",
-                          dec.grade === "C" && "text-yellow-400 bg-yellow-500/5 border border-yellow-500/10",
-                          dec.grade === "D" && "text-orange-400 bg-orange-500/5 border border-orange-500/10",
-                          dec.grade === "F" && "text-red-400 bg-red-500/5 border border-red-500/10",
+                          grade === "A" && "text-green-400 bg-green-500/5 border border-green-500/10",
+                          grade === "B" && "text-blue-400 bg-blue-500/5 border border-blue-500/10",
+                          grade === "C" && "text-yellow-400 bg-yellow-500/5 border border-yellow-500/10",
+                          grade === "D" && "text-orange-400 bg-orange-500/5 border border-orange-500/10",
+                          grade === "F" && "text-red-400 bg-red-500/5 border border-red-500/10",
+                          grade === "..." && "text-slate-400 bg-white/5 border border-white/10",
                         )}
                       >
-                        {dec.crs} / {dec.grade}
+                        {score} / {grade}
                       </span>
                     </td>
 
                     {/* Date */}
                     <td className="py-4 px-6 text-xs text-slate-500 font-medium">
-                      {dec.date}
+                      {formatDate(dec.created_at)}
                     </td>
 
                     {/* Actions */}
                     <td className="py-4 px-6 text-right">
-                      {dec.status === "review_ready" ? (
+                      {status === "review_ready" ? (
                         <Link
-                          href={`/review/${dec.id}`}
+                          href={`/batches/${dec.id}`}
                           className="inline-flex items-center justify-center rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-3.5 py-1.5 text-xs font-bold transition shadow-md shadow-cyan-500/5 hover:scale-[1.02] active:scale-[0.98]"
                         >
                           Review & Override
                         </Link>
-                      ) : dec.status === "processing" ? (
+                      ) : isProcessing ? (
                         <div className="inline-flex items-center gap-1.5 text-xs text-cyan-400/80 font-semibold px-3 py-1.5">
                           <Loader2 className="h-3 w-3 animate-spin" />
                           Processing
@@ -194,7 +223,8 @@ export default function BatchesPage() {
                       )}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-500 font-medium">

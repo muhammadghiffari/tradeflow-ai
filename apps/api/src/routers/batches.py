@@ -25,7 +25,7 @@ except Exception:  # pragma: no cover - optional for tests
 
 from ..dependencies import CurrentUser, get_current_user, get_supabase, require_operator
 from ..services.ingest_svc import get_storage_service
-from ..tasks.ocr_tasks import preprocess_document
+from ..tasks.ocr_tasks import preprocess_document, run_preprocess_pipeline_sync
 
 log = structlog.get_logger()
 router = APIRouter()
@@ -151,12 +151,16 @@ async def create_batch(
 
     await supabase.table("batches").update({"status": "preprocessing"}).eq("id", batch_id).execute()
 
-    queue = "high" if user.is_enterprise else "default"
-    try:
-        preprocess_document.apply_async(args=[batch_id], queue=queue)
-    except Exception as e:
-        log.warning("Celery apply_async failed, falling back to BackgroundTasks", error=str(e))
-        background_tasks.add_task(preprocess_document, batch_id)
+    if settings.RUN_OCR_IN_API_BACKGROUND:
+        log.info("Running OCR pipeline via FastAPI BackgroundTasks", batch_id=batch_id)
+        background_tasks.add_task(run_preprocess_pipeline_sync, batch_id, True)
+    else:
+        queue = "high" if user.is_enterprise else "default"
+        try:
+            preprocess_document.apply_async(args=[batch_id], queue=queue)
+        except Exception as e:
+            log.warning("Celery apply_async failed, falling back to BackgroundTasks", error=str(e))
+            background_tasks.add_task(run_preprocess_pipeline_sync, batch_id, True)
 
     log.info("Batch created", batch_id=batch_id, user=user.id, docs=len(files), tier=user.tier)
     return {"batch_id": batch_id, "status": "preprocessing", "documents": documents}
@@ -170,14 +174,17 @@ async def list_batches(
     offset: int = 0,
 ) -> dict[str, Any]:
     """List batches for the current user's company."""
-    res = await (
+    query = (
         supabase.table("batches")
         .select("id,status,customs_readiness_score,crs_grade,risk_level,created_at,expires_at")
-        .eq("company_id", user.company_id)
         .order("created_at", desc=True)
         .range(offset, offset + limit - 1)
-        .execute()
     )
+
+    if user.company_id:
+        query = query.eq("company_id", user.company_id)
+
+    res = await query.execute()
     return {"batches": res.data, "total": len(res.data)}
 
 
@@ -188,7 +195,17 @@ async def get_batch(
     supabase: Annotated[AsyncClient, Depends(get_supabase)],
 ) -> dict[str, Any]:
     """Get full batch details including extracted fields and validation results."""
-    batch_res = await supabase.table("batches").select("*").eq("id", batch_id).single().execute()
+    try:
+        uuid.UUID(batch_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Batch not found") from exc
+
+    try:
+        batch_res = await supabase.table("batches").select("*").eq("id", batch_id).single().execute()
+    except Exception as exc:
+        log.warning("Failed to load batch", batch_id=batch_id, error=str(exc))
+        raise HTTPException(status_code=404, detail="Batch not found") from exc
+
     batch = batch_res.data
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")

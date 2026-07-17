@@ -1,0 +1,186 @@
+{
+  "case_name": "CIPL_Rejected_CDP_01",
+  "purpose": "Synthetic full CIPL triple (B/L+PL+Invoice), deliberately inconsistent on 4 points - one for each rejection cause named in the Executive Summary: HS code error, CIF inconsistency, NIB/NPWP format failure, cross-document (package count) mismatch. Everything else is kept correct/consistent so each failure signal is isolated.",
+  "files": {
+    "bill_of_lading": "BL_EGLV560500223104.pdf",
+    "packing_list": "PL_GEC-2026-0311.pdf",
+    "commercial_invoice": "Invoice_GEC-2026-0311.pdf"
+  },
+  "carrier": "Evergreen Line",
+  "scac": "EGLV",
+  "deliberate_failures": [
+    {
+      "issue": "Package count mismatch",
+      "detail": "B/L header states 500 CTNS, but the Packing List line items sum to 480 CTNS.",
+      "rule": "CV001"
+    },
+    {
+      "issue": "CIF inconsistency",
+      "detail": "Invoice states CIF USD 12,500.00, but FOB+freight+insurance computes to USD 14,618.00 (14.5% difference, exceeds 5% tolerance).",
+      "rule": "CV002"
+    },
+    {
+      "issue": "HS code format error",
+      "detail": "HS code printed as '731990' (6 digits) instead of the required 8-digit BTKI code.",
+      "rule": "CV006"
+    },
+    {
+      "issue": "NIB format error",
+      "detail": "Importer NIB printed as '812001234567' (12 digits) instead of the required 13 digits.",
+      "rule": "CV008"
+    }
+  ],
+  "ceisa_fields": {
+    "nomorBl": "EGLV560500223104",
+    "namaKapal": "EVERGREEN SPRING",
+    "voyageNumber": "0088E",
+    "kodePelabuhanMuat": "CNSHA",
+    "kodePelabuhanBongkar": "IDJBK",
+    "jumlahKemasan_bl": 500,
+    "jumlahKemasan_pl_sum": 480,
+    "beratKotor": 8960.0,
+    "beratBersih": 8350.0,
+    "measurement_cbm": 43.8,
+    "jumlah_kontainer": 2,
+    "tglBl": "2026-07-03",
+    "namaShipper": "GUANGZHOU EVERBRIGHT CHEMICALS & HARDWARE CO., LTD.",
+    "namaKonsignee": "PT. NUSANTARA KIMIA PRATAMA, KAWASAN INDUSTRI JABABEKA, JL. JABABEKA XI BLOK D NO. 7, CIKARANG SELATAN, BEKASI, JAWA BARAT 17530, INDONESIA",
+    "nibEntitas": "812001234567",
+    "nomorIdentitas": "02.345.678.9-408.000",
+    "fob": 13600.0,
+    "freight": 950.0,
+    "asuransi": 68.0,
+    "cif_stated": 12500.0,
+    "cif_computed": 14618.0,
+    "hs_code": "731990",
+    "currency": "USD",
+    "invoice_no": "GEC-2026-0311",
+    "invoice_date": "2026-07-01",
+    "po_no": "PO-NKP-20260601-02",
+    "barang": [
+      {
+        "seriBarang": 1,
+        "uraian": "STAINLESS STEEL FASTENERS ASSORTMENT",
+        "posTarif": "731990",
+        "jumlahSatuan": 8000,
+        "kodeSatuanBarang": "PCS",
+        "container_no": "EGHU1122334",
+        "seal_no": "EG551109",
+        "jumlahKemasan": 240,
+        "beratBersih": 4200.0,
+        "beratKotor": 4500.0,
+        "nilaiBarang": 6800.0
+      },
+      {
+        "seriBarang": 2,
+        "uraian": "STAINLESS STEEL FASTENERS ASSORTMENT",
+        "posTarif": "731990",
+        "jumlahSatuan": 8000,
+        "kodeSatuanBarang": "PCS",
+        "container_no": "EGHU3344556",
+        "seal_no": "EG551110",
+        "jumlahKemasan": 240,
+        "beratBersih": 4150.0,
+        "beratKotor": 4460.0,
+        "nilaiBarang": 6800.0
+      }
+    ]
+  },
+  "cross_document_validation": [
+    {
+      "rule_id": "CV001",
+      "severity": "CRITICAL",
+      "name": "Package count consistency (B/L = PL)",
+      "bl_value": 500,
+      "pl_value": 480,
+      "result": "FAIL",
+      "rejection_cause": "cross-document mismatch"
+    },
+    {
+      "rule_id": "CV002",
+      "severity": "WARNING",
+      "name": "CIF = FOB + freight + insurance (<=5%)",
+      "computed_cif": 14618.0,
+      "stated_cif": 12500.0,
+      "diff_pct": 14.5,
+      "result": "FAIL",
+      "rejection_cause": "CIF inconsistency",
+      "maps_to_error": "E015"
+    },
+    {
+      "rule_id": "CV003",
+      "name": "B/L date <= arrival date",
+      "bl_date": "2026-07-03",
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV004",
+      "name": "Currency match (invoice = packing list)",
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV005",
+      "name": "Gross weight tolerance 2% (B/L vs sum PL items)",
+      "bl_gross_kg": 8960.0,
+      "pl_sum_gross_kg": 8960.0,
+      "result": "PASS",
+      "note": "kept matching on purpose to isolate the CV001 count-only failure"
+    },
+    {
+      "rule_id": "CV006",
+      "severity": "CRITICAL",
+      "name": "HS code format (8-digit BTKI)",
+      "hs_code": "731990",
+      "result": "FAIL",
+      "rejection_cause": "HS code error",
+      "maps_to_error": "E004"
+    },
+    {
+      "rule_id": "CV007",
+      "name": "NPWP checksum valid",
+      "npwp": "02.345.678.9-408.000",
+      "result": "PASS (format only, not a real checksum)"
+    },
+    {
+      "rule_id": "CV008",
+      "severity": "CRITICAL",
+      "name": "NIB format (13 digits)",
+      "nib": "812001234567",
+      "digit_count": 12,
+      "result": "FAIL",
+      "rejection_cause": "NIB/NPWP format failure",
+      "maps_to_error": "E031"
+    },
+    {
+      "rule_id": "CV009",
+      "name": "Port of delivery is CDP (IDJBK)",
+      "port_discharge_code": "IDJBK",
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV010",
+      "name": "Line item count consistency (PL vs invoice, <=1 diff)",
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV011",
+      "name": "Vessel name consistency B/L vs AIS",
+      "result": "ASSUMED PASS"
+    }
+  ],
+  "expected_ceisa_simulator_result": {
+    "scenario": "S06 (Mixed Realistic) or a custom scenario",
+    "status": "REJECTED",
+    "expected_error_codes": [
+      "E004",
+      "E015",
+      "E031"
+    ],
+    "note": "Pre-submit checklist (F-020) requires ALL CRITICAL rules to pass before submission - CV001, CV006 and CV008 are CRITICAL here, so this declaration should be BLOCKED at the Human Review step and never even reach the CEISA simulator, unless the pipeline has a bug."
+  },
+  "notes": [
+    "SYNTHETIC DATA - no real company, NIB, or NPWP. Safe to redistribute for testing/training.",
+    "Gross weight (CV005) and currency/line-item count (CV004/CV010) were kept CONSISTENT on purpose, so this fixture isolates exactly 4 failure signals instead of failing everything at once.",
+    "Use this alongside CIPL_HappyPath_CDP_01 as a minimal contrastive pair: same document structure, opposite outcome."
+  ]
+}

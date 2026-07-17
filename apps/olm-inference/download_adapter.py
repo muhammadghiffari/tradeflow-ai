@@ -25,7 +25,7 @@ ADAPTER_LOCAL_PATH = Path(HF_HUB_CACHE) / "adapters" / "cipl_adapter"
 def download_base_model() -> None:
     """Pre-cache the base olmOCR model weights (vLLM will load from cache)."""
     from huggingface_hub import snapshot_download
-    model_path = Path(HF_HUB_CACHE) / "models--" + OLM_BASE_MODEL.replace("/", "--")
+    model_path = Path(HF_HUB_CACHE) / f"models--{OLM_BASE_MODEL.replace('/', '--')}"
     if model_path.exists():
         logger.info(f"Base model already cached at {model_path}")
         return

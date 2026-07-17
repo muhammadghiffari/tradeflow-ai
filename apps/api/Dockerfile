@@ -10,11 +10,14 @@ RUN pip install uv && \
     libgl1 \
     libglib2.0-0 \
     libmagic1 \
+    libgomp1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies using uv (lockfile ensures deterministic resolution)
 COPY pyproject.toml uv.lock ./
+ENV UV_HTTP_TIMEOUT=300
+ENV UV_REQUEST_RETRIES=10
 RUN uv pip install --system -r pyproject.toml
 
 # Copy source code

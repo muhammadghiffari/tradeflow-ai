@@ -20,6 +20,44 @@ const CONF_BG = {
   LOW: "text-red-400 bg-red-500/10 border-red-500/20",
 };
 
+const PROCESSING_COPY: Record<string, { title: string; detail: string; current: string }> = {
+  preprocessing: {
+    title: "Queued for OCR preprocessing",
+    detail: "The upload is saved. Waiting for the OCR worker to render PDF pages and read the text layer.",
+    current: "Storage -> PDF render -> direct text scan",
+  },
+  processing: {
+    title: "Scanning documents with OCR models",
+    detail: "The worker is extracting fields, reconciling OCR evidence, validating CEISA rules, and scoring risk.",
+    current: "OCR ensemble -> LLM extraction -> validation",
+  },
+  ocr_running: {
+    title: "Scanning documents with OCR models",
+    detail: "The worker is rendering PDF pages, reading direct text, and calling available OCR engines.",
+    current: "Direct PDF text -> PaddleOCR/Surya -> OCR reconciliation",
+  },
+  extracting: {
+    title: "Extracting CEISA fields",
+    detail: "The extraction model is converting OCR evidence into structured import declaration fields.",
+    current: "LLM extraction -> field confidence scoring",
+  },
+  validating: {
+    title: "Validating extracted fields",
+    detail: "CEISA business rules, cross-document checks, and rejection risk scoring are running.",
+    current: "Validation rules -> CRS/risk score",
+  },
+};
+
+const OCR_STACK = [
+  "Direct PDF text",
+  "PaddleOCR",
+  "Surya OCR",
+  "Azure Document Intelligence",
+  "Gemini or local LLM",
+];
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function BatchDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -32,6 +70,12 @@ export default function BatchDetailPage() {
   useEffect(() => {
     let timeoutId: any;
     const fetchBatch = async () => {
+      if (!UUID_PATTERN.test(String(id))) {
+        setError("Batch not found. Open a declaration from the live list or upload a new CIPL set.");
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await fetch(`/api/v1/batches/${id}`);
         if (!res.ok) throw new Error(await res.text());
@@ -39,7 +83,7 @@ export default function BatchDetailPage() {
         setBatchData(data);
         setError(null);
         
-        if (data.batch.status === "preprocessing" || data.batch.status === "processing") {
+        if (["preprocessing", "ocr_running", "extracting", "validating"].includes(data.batch.status)) {
           timeoutId = setTimeout(fetchBatch, 5000);
         } else {
           setLoading(false);
@@ -55,12 +99,32 @@ export default function BatchDetailPage() {
 
   const batch = batchData?.batch || {};
   const MOCK_VALIDATIONS = batchData?.validation_results || [];
-  
-  // Transform backend fields to match UI expectations
-  const MOCK_FIELDS = (batchData?.extracted_fields || []).map((f: any) => ({
+
+  // Transform backend fields to match UI expectations and deduplicate by field name
+  const uniqueFields = Array.from(
+    new Map((batchData?.extracted_fields || []).map((f: any) => [f.ceisa_field, f])).values()
+  );
+
+  const MOCK_FIELDS = uniqueFields.map((f: any) => ({
     ...f,
     confidence_level: f.confidence > 0.85 ? "HIGH" : f.confidence > 0.65 ? "MEDIUM" : "LOW"
   }));
+  const isProcessing = ["uploaded", "preprocessing", "ocr_running", "extracting", "validating"].includes(batch.status);
+  const processingStage = PROCESSING_COPY[batch.status] ?? PROCESSING_COPY.preprocessing;
+  const safeScore = Number(batch.customs_readiness_score ?? 0);
+  const safeGrade = batch.crs_grade || (isProcessing ? "..." : "B");
+  const safeRiskLevel = batch.risk_level || (isProcessing ? "PENDING" : "LOW");
+  const rejectionProbability =
+    typeof batch.rejection_probability === "number"
+      ? `${(batch.rejection_probability * 100).toFixed(1)}%`
+      : "Pending";
+  const importerName =
+    MOCK_FIELDS.find((f: any) => f.ceisa_field === "importer_name")?.extracted_value || "Pending extraction";
+  const statusLabel = isProcessing
+    ? "Processing OCR"
+    : batch.status === "review_ready"
+      ? "Awaiting Review"
+      : (batch.status || "Ready").replace("_", " ");
 
   if (loading && !batchData) {
     return <div className="p-20 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-slate-500" /></div>;
@@ -105,12 +169,19 @@ export default function BatchDetailPage() {
             <h1 className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-300">
               Review Declaration PIB
             </h1>
-            <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
-              Awaiting Review
+            <span
+              className={cn(
+                "text-xs border px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider",
+                isProcessing
+                  ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
+                  : "bg-amber-500/10 border-amber-500/20 text-amber-400",
+              )}
+            >
+              {statusLabel}
             </span>
           </div>
           <p className="text-xs text-slate-500 font-medium">
-            Created {formatDate(batch.created_at)} · Importer: <span className="text-slate-400 font-semibold">{batch.importer}</span>
+            Created {formatDate(batch.created_at)} · Importer: <span className="text-slate-400 font-semibold">{importerName}</span>
           </p>
         </div>
 
@@ -147,10 +218,47 @@ export default function BatchDetailPage() {
         </div>
       </div>
 
+      {isProcessing && (
+        <div className="glass-card p-6 border-cyan-500/20 bg-cyan-500/[0.03] space-y-5">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="h-11 w-11 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+                <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-cyan-400">Live processing</p>
+                <h2 className="mt-1 text-lg font-bold text-slate-100">{processingStage.title}</h2>
+                <p className="mt-1 text-sm text-slate-400 font-medium leading-relaxed">{processingStage.detail}</p>
+              </div>
+            </div>
+            <span className="rounded-lg border border-white/5 bg-slate-950/60 px-3 py-1.5 text-[11px] font-bold text-slate-300">
+              {batch.status.replace("_", " ")}
+            </span>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-white/5 bg-slate-950/40 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Current stage</p>
+              <p className="mt-2 text-sm font-semibold text-slate-200">{processingStage.current}</p>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-slate-950/40 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Models available for this run</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {OCR_STACK.map((model) => (
+                  <span key={model} className="rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-slate-300">
+                    {model}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="glass-card flex flex-col items-center justify-center py-6 hover:border-white/10 transition duration-300">
-          <CRSGauge score={batch.customs_readiness_score} grade={batch.crs_grade} size={150} />
+          <CRSGauge score={safeScore} grade={safeGrade} size={150} />
         </div>
         
         <div className="glass-card p-6 flex flex-col justify-between hover:border-white/10 transition duration-300">
@@ -161,16 +269,16 @@ export default function BatchDetailPage() {
             <span
               className={cn(
                 "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-extrabold uppercase border tracking-wider",
-                batch.risk_level === "HIGH" ? "risk-high" : "risk-low",
+                batch.risk_level === "HIGH" || batch.risk_level === "CRITICAL" ? "risk-high" : "risk-low",
               )}
             >
-              {batch.risk_level} RISK LEVEL
+              {safeRiskLevel} RISK LEVEL
             </span>
           </div>
           <div>
             <p className="text-xs text-slate-500 font-medium">Rejection Probability</p>
             <p className="text-3xl font-extrabold text-red-400 mt-1 font-mono">
-              {(batch.rejection_probability * 100).toFixed(1)}%
+              {rejectionProbability}
             </p>
           </div>
         </div>
@@ -202,18 +310,29 @@ export default function BatchDetailPage() {
           <h2 className="font-semibold text-sm tracking-tight text-slate-200">Validation System Output</h2>
         </div>
         <div className="divide-y divide-white/5">
-          {MOCK_VALIDATIONS.map((v) => (
-            <div key={v.rule_id} className="flex items-start gap-4 px-6 py-4">
-              <div className="mt-0.5">{SEVERITY_ICON[v.severity as keyof typeof SEVERITY_ICON]}</div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-200">{v.rule_name}</p>
-                {v.error_message && (
-                  <p className="text-xs text-slate-500 mt-1 font-medium leading-relaxed">{v.error_message}</p>
-                )}
+          {MOCK_VALIDATIONS.length > 0 ? (
+            MOCK_VALIDATIONS.map((v: any) => (
+              <div key={v.rule_id} className="flex items-start gap-4 px-6 py-4">
+                <div className="mt-0.5">{SEVERITY_ICON[v.severity as keyof typeof SEVERITY_ICON]}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-200">{v.rule_name}</p>
+                  {v.error_message && (
+                    <p className="text-xs text-slate-500 mt-1 font-medium leading-relaxed">{v.error_message}</p>
+                  )}
+                </div>
+                <span className="text-[10px] font-bold font-mono text-slate-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">{v.rule_id}</span>
               </div>
-              <span className="text-[10px] font-bold font-mono text-slate-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">{v.rule_id}</span>
+            ))
+          ) : isProcessing ? (
+            <div className="p-8 flex flex-col items-center justify-center text-slate-400 space-y-4">
+              <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+              <p className="text-sm font-medium animate-pulse">{processingStage.current}</p>
             </div>
-          ))}
+          ) : (
+            <div className="p-8 flex items-center justify-center text-slate-500 text-sm">
+              No validation rules triggered.
+            </div>
+          )}
         </div>
       </div>
 
@@ -226,31 +345,42 @@ export default function BatchDetailPage() {
           </p>
         </div>
         <div className="divide-y divide-white/5">
-          {MOCK_FIELDS.map((f) => (
-            <div key={f.ceisa_field} className="flex flex-col sm:flex-row sm:items-center gap-3 px-6 py-4">
-              <span className="text-xs font-bold font-mono text-slate-400 w-48 shrink-0 capitalize">
-                {f.ceisa_field.replace(/_/g, " ")}
-              </span>
-              <input
-                className={cn(
-                  "flex-1 rounded-xl bg-slate-900/40 border px-3 py-2 text-sm font-mono text-slate-200 outline-none transition-all focus:ring-1",
-                  f.confidence_level === "LOW"
-                    ? "border-red-500/30 focus:border-red-400/50 focus:ring-red-400/50 bg-red-950/[0.02]"
-                    : "border-white/5 focus:border-cyan-500/40 focus:ring-cyan-500/40",
-                )}
-                defaultValue={f.extracted_value}
-                onChange={(e) => handleCorrection(f.ceisa_field, e.target.value)}
-              />
-              <span
-                className={cn(
-                  "text-[10px] font-bold px-2 py-0.5 rounded-full border self-start sm:self-auto",
+          {MOCK_FIELDS.length > 0 ? (
+            MOCK_FIELDS.map((f: any, i: number) => (
+              <div key={`${f.ceisa_field}-${i}`} className="flex flex-col sm:flex-row sm:items-center gap-3 px-6 py-4">
+                <span className="text-xs font-bold font-mono text-slate-400 w-48 shrink-0 capitalize">
+                  {f.ceisa_field.replace(/_/g, " ")}
+                </span>
+                <input
+                  className={cn(
+                    "flex-1 rounded-xl bg-slate-900/40 border px-3 py-2 text-sm font-mono text-slate-200 outline-none transition-all focus:ring-1",
+                    f.confidence_level === "LOW"
+                      ? "border-red-500/30 focus:border-red-400/50 focus:ring-red-400/50 bg-red-950/[0.02]"
+                      : "border-white/5 focus:border-cyan-500/40 focus:ring-cyan-500/40",
+                  )}
+                  defaultValue={f.extracted_value}
+                  onChange={(e) => handleCorrection(f.ceisa_field, e.target.value)}
+                />
+                <span
+                  className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full border self-start sm:self-auto",
                   CONF_BG[f.confidence_level as keyof typeof CONF_BG],
                 )}
               >
                 {(f.confidence * 100).toFixed(0)}% CONF
               </span>
             </div>
-          ))}
+            ))
+          ) : isProcessing ? (
+            <div className="p-8 flex flex-col items-center justify-center text-slate-400 space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+              <p className="text-sm font-medium animate-pulse">{processingStage.detail}</p>
+            </div>
+          ) : (
+            <div className="p-8 flex items-center justify-center text-slate-500 text-sm">
+              No fields were extracted.
+            </div>
+          )}
         </div>
       </div>
 

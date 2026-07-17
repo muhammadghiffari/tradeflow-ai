@@ -10,7 +10,7 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./packages/db/migrations:/docker-entrypoint-initdb.d/migrations:ro
+      - ./packages/db/migrations:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
     healthcheck:
@@ -52,7 +52,7 @@ services:
   # 3. REDIS 8 — Celery broker + LangGraph checkpointer
   # ─────────────────────────────────────────────
   redis:
-    image: redis/redis-stack:8.0-M04
+    image: redis/redis-stack:latest
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -86,8 +86,9 @@ services:
       retries: 5
 
   # ─────────────────────────────────────────────
-  # 5. SURYA-SVC — Agent A (Surya 2 via vLLM)
-  # GPU service — weights downloaded at startup
+  # 5. SURYA-SVC — Official Surya v2 (datalab-to/surya >= 0.21)
+  # CPU service — uses llama.cpp backend to avoid VRAM conflict with Ollama
+  # https://github.com/datalab-to/surya
   # ─────────────────────────────────────────────
   surya-svc:
     build:
@@ -96,25 +97,32 @@ services:
     restart: unless-stopped
     environment:
       HF_HUB_CACHE: /data/models
-      SURYA_MODEL: datalab-to/surya-ocr
+      TORCH_HOME: /data/models/torch
       PORT: 8001
+      # Force CPU-only: llama.cpp backend, hide GPU from Surya so Ollama keeps it
+      CUDA_VISIBLE_DEVICES: ""
+      SURYA_INFERENCE_BACKEND: llamacpp
+      SURYA_INFERENCE_KEEP_ALIVE: "1"
+      # Disable tqdm progress bars in container logs
+      DISABLE_TQDM: "1"
     volumes:
       - model_cache:/data/models
+      - ./apps/surya-svc/serve.py:/app/serve.py:ro
     ports:
       - "8010:8001"
     deploy:
       resources:
+        limits:
+          memory: 3G
         reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+          memory: 1G
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 120s
+
 
   # ─────────────────────────────────────────────
   # 6. OLM-INFERENCE — Agent D (olmOCR-2-7B-CIPL via vLLM + LoRA)
@@ -135,6 +143,8 @@ services:
       - model_cache:/data/models
     ports:
       - "8000:8000"
+    profiles:
+      - "cloud-gpu"
     deploy:
       resources:
         reservations:
@@ -160,10 +170,22 @@ services:
     environment:
       HF_HUB_CACHE: /data/models
       PORT: 8002
+      # Force CPU-only — GPU reserved for Surya + Ollama
+      CUDA_VISIBLE_DEVICES: ""
+      FLAGS_use_gpu: "0"
     volumes:
       - model_cache:/data/models
+      - ./apps/paddleocr-svc/serve.py:/app/serve.py:ro
     ports:
       - "8011:8002"
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2G
+        reservations:
+          cpus: "2"
+          memory: 1G
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8002/health || exit 1"]
       interval: 20s
@@ -183,10 +205,21 @@ services:
       HF_HUB_CACHE: /data/models
       OCR_FAST_PATH_QUALITY_THRESHOLD: "0.95"
       PORT: 8003
+      # CPU-only service — OpenCV preprocessing
+      CUDA_VISIBLE_DEVICES: ""
     volumes:
       - model_cache:/data/models
+      - ./apps/mineru-svc/serve.py:/app/serve.py:ro
     ports:
       - "8012:8003"
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2G
+        reservations:
+          cpus: "2"
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8003/health || exit 1"]
       interval: 20s
@@ -234,13 +267,18 @@ services:
       REDIS_URL: redis://redis:6379/0
       KEYCLOAK_SERVER_URL: http://keycloak:8080
       KEYCLOAK_REALM: tradeflow
-      SURYA_INFERENCE_URL: http://surya-svc:8001
-      OLM_INFERENCE_URL: http://olm-inference:8000
-      PADDLEOCR_SVC_URL: http://paddleocr-svc:8002
-      MINERU_SVC_URL: http://mineru-svc:8003
+      SURYA_INFERENCE_URL: ${SURYA_INFERENCE_URL:-http://surya-svc:8001}
+      OLM_INFERENCE_URL: ${OLM_INFERENCE_URL:-http://olm-inference:8000}
+      PADDLEOCR_SVC_URL: ${PADDLEOCR_SVC_URL:-http://paddleocr-svc:8002}
+      MINERU_SVC_URL: ${MINERU_SVC_URL:-http://mineru-svc:8003}
       CEISA_BASE_URL: http://simulator:8006
       CHROMADB_HOST: chromadb
       CHROMADB_PORT: 8000
+      SUPABASE_URL: http://supabase-proxy:80
+      STORAGE_BACKEND: minio
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
     volumes:
       - ./apps/api/src:/app/src:ro
       - ./packages/db/validation_rules.json:/app/validation_rules.json
@@ -256,7 +294,7 @@ services:
       context: ./apps/api
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: celery -A src.tasks.celery_app worker --loglevel=info -Q critical,high,default,low --concurrency=4
+    command: celery -A src.tasks.celery_app worker --loglevel=info -Q critical,high,default,low --concurrency=2
     depends_on:
       redis:
         condition: service_healthy
@@ -271,13 +309,18 @@ services:
       REDIS_URL: redis://redis:6379/0
       KEYCLOAK_SERVER_URL: http://keycloak:8080
       KEYCLOAK_REALM: tradeflow
-      SURYA_INFERENCE_URL: http://surya-svc:8001
-      OLM_INFERENCE_URL: http://olm-inference:8000
-      PADDLEOCR_SVC_URL: http://paddleocr-svc:8002
-      MINERU_SVC_URL: http://mineru-svc:8003
+      SURYA_INFERENCE_URL: ${SURYA_INFERENCE_URL:-http://surya-svc:8001}
+      OLM_INFERENCE_URL: ${OLM_INFERENCE_URL:-http://olm-inference:8000}
+      PADDLEOCR_SVC_URL: ${PADDLEOCR_SVC_URL:-http://paddleocr-svc:8002}
+      MINERU_SVC_URL: ${MINERU_SVC_URL:-http://mineru-svc:8003}
       CEISA_BASE_URL: http://simulator:8006
       CHROMADB_HOST: chromadb
       CHROMADB_PORT: 8000
+      SUPABASE_URL: http://supabase-proxy:80
+      STORAGE_BACKEND: minio
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
     volumes:
       - ./apps/api/src:/app/src:ro
       - ./packages/db/validation_rules.json:/app/validation_rules.json
@@ -303,7 +346,7 @@ services:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-secret-32-chars-long-minimum!!}
       KEYCLOAK_WEB_CLIENT_ID: ${KEYCLOAK_WEB_CLIENT_ID:-tradeflow-web}
       KEYCLOAK_WEB_CLIENT_SECRET: ${KEYCLOAK_WEB_CLIENT_SECRET:-change-me}
-      KEYCLOAK_ISSUER: http://localhost:8080/realms/tradeflow
+      KEYCLOAK_ISSUER: http://keycloak:8080/realms/tradeflow
     volumes:
       - ./apps/web:/app/apps/web:delegated
       - web-node-modules:/app/apps/web/node_modules
@@ -311,7 +354,61 @@ services:
       - "3000:3000"
 
   # ─────────────────────────────────────────────
-  # 13. PROMETHEUS — Metrics collection
+  # 13. POSTGREST — Supabase REST API (lokal, mengekspos PostgreSQL sebagai REST)
+  # ─────────────────────────────────────────────
+  postgrest:
+    image: postgrest/postgrest:v12.2.3
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${SUPABASE_JWT_SECRET:-38e0c97d-a5e7-4400-aa86-5ee3a6d32264}
+      PGRST_DB_EXTRA_SEARCH_PATH: public
+      PGRST_SERVER_PORT: 3000
+    ports:
+      - "3100:3000"
+
+  # ─────────────────────────────────────────────
+  # Supabase Proxy — maps /rest/v1/* → PostgREST
+  # Supabase Python client always appends /rest/v1
+  # ─────────────────────────────────────────────
+  supabase-proxy:
+    image: nginx:alpine
+    restart: unless-stopped
+    depends_on:
+      - postgrest
+    volumes:
+      - ./infra/nginx/supabase-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "3101:80"
+
+  # ─────────────────────────────────────────────
+  # 14. MINIO — S3-compatible object storage lokal
+  # ─────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"  # MinIO Console
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # 15. PROMETHEUS — Metrics collection
   # ─────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:v2.53.0
@@ -362,3 +459,4 @@ volumes:
   web-node-modules:
   prometheus-data:
   grafana-data:
+  minio-data:

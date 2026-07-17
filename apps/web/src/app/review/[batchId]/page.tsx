@@ -74,6 +74,9 @@ export default function OperatorReviewPage() {
   // 1. Still Processing State
   if (
     realtime.status === "preprocessing" ||
+    realtime.status === "ocr_running" ||
+    realtime.status === "extracting" ||
+    realtime.status === "validating" ||
     realtime.status === "processing" ||
     (stream.isConnected && !stream.isComplete)
   ) {

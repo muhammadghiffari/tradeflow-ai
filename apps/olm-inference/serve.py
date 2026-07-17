@@ -26,6 +26,30 @@ PORT = os.environ.get("PORT", "8000")
 ADAPTER_PATH_FILE = Path("/tmp/adapter_path.txt")
 
 
+def detect_dtype() -> str:
+    """Auto-detect the best dtype for the current GPU.
+
+    T4 GPUs (compute capability 7.5) do NOT support bfloat16.
+    Only GPUs with compute capability >= 8.0 (A100, A10G, H100, etc.)
+    support bfloat16.
+    """
+    try:
+        import torch
+        if torch.cuda.is_available():
+            cap = torch.cuda.get_device_capability(0)
+            if cap[0] >= 8:
+                logger.info(f"GPU compute capability {cap[0]}.{cap[1]} — using bfloat16")
+                return "bfloat16"
+            else:
+                logger.info(f"GPU compute capability {cap[0]}.{cap[1]} — using float16 (T4/V100)")
+                return "half"
+    except ImportError:
+        pass
+    # Fallback: float16 is universally supported
+    logger.warning("Could not detect GPU capability — defaulting to float16")
+    return "half"
+
+
 def get_adapter_path() -> str | None:
     if ADAPTER_PATH_FILE.exists():
         p = ADAPTER_PATH_FILE.read_text().strip()
@@ -34,10 +58,11 @@ def get_adapter_path() -> str | None:
 
 
 def build_vllm_cmd(adapter_path: str | None) -> list[str]:
+    dtype = detect_dtype()
     cmd = [
         sys.executable, "-m", "vllm.entrypoints.openai.api_server",
         "--model", OLM_BASE_MODEL,
-        "--dtype", "bfloat16",
+        "--dtype", dtype,
         "--gpu-memory-utilization", "0.85",
         "--max-model-len", "4096",
         "--port", PORT,

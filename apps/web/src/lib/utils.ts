@@ -9,7 +9,11 @@ export function formatCurrency(amount: number, currency = "USD"): string {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency }).format(amount);
 }
 
-export function formatDate(iso: string): string {
+export function formatDate(iso?: string | null): string {
+  if (!iso) return "Pending";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Pending";
+
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
     month: "short",

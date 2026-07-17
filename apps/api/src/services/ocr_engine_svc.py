@@ -56,8 +56,16 @@ CEISA_FIELD_PATTERNS = {
 
 def _as_float(value: str) -> float | None:
     try:
-        return float(value.replace(",", ""))
-    except ValueError:
+        # Handle European format: "11,603.000" (comma = thousands separator)
+        # Detect if comma is used as thousands: e.g., "11,603.000" has comma before 3+ digits before decimal
+        cleaned = value.strip()
+        if re.search(r"\d,\d{3}(\.|$)", cleaned):
+            cleaned = cleaned.replace(",", "")
+        else:
+            # Could be decimal comma: "11.603,000" -> 11603.0
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        return float(cleaned)
+    except (ValueError, AttributeError):
         return None
 
 
@@ -106,10 +114,40 @@ class OCREngineService:
         started = time.perf_counter()
         suffix = Path(filename or storage_path).suffix.lower()
         mime_type = mimetypes.guess_type(filename or storage_path)[0] or "application/octet-stream"
+        is_pdf = suffix == ".pdf" or mime_type == "application/pdf"
 
-        page_images = await asyncio.to_thread(self._render_page_images, file_bytes, suffix)
         raw_text = ""
         candidates: dict[str, dict[str, Any]] = {}
+
+        if is_pdf:
+            direct_candidate = await asyncio.to_thread(self._extract_pdf_text, file_bytes)
+            raw_text = direct_candidate.get("text", "")
+            if direct_candidate.get("fields") or raw_text.strip():
+                candidates["pdf_text"] = direct_candidate
+
+            if self._is_pdf_text_fast_path(direct_candidate):
+                latency_ms = round((time.perf_counter() - started) * 1000, 2)
+                log.info(
+                    "Digital PDF fast path selected",
+                    doc_id=doc_id,
+                    storage_path=storage_path,
+                    text_chars=direct_candidate.get("text_chars"),
+                    text_chars_per_page=direct_candidate.get("text_chars_per_page"),
+                    fields=list((direct_candidate.get("fields") or {}).keys()),
+                    latency_ms=latency_ms,
+                )
+                return {
+                    "pages": [],
+                    "raw_text": raw_text,
+                    "ocr_candidates": candidates,
+                    "quality_score": float(direct_candidate.get("confidence") or 1.0),
+                    "document_mode": "digital_pdf_text",
+                    "ocr_engine_latencies_ms": {
+                        name: candidate.get("latency_ms") for name, candidate in candidates.items()
+                    },
+                }
+
+        page_images = await asyncio.to_thread(self._render_page_images, file_bytes, suffix)
 
         if settings.CLOUD_LLM_ONLY:
             page_data_urls = [_data_url(b) for b in page_images[: settings.OCR_MAX_LLM_PAGES]]
@@ -121,27 +159,17 @@ class OCREngineService:
                 "ocr_engine_latencies_ms": {}
             }
 
-        pdf_task = None
-        if suffix == ".pdf" or mime_type == "application/pdf":
-            pdf_task = asyncio.to_thread(self._extract_pdf_text, file_bytes)
-
         paddle_task = self._run_paddle(page_images)
+        surya_task = self._run_surya(page_images) if settings.ENABLE_SURYA_AGENT else None
         azure_task = self._run_azure(file_bytes, mime_type) if settings.ENABLE_DUAL_OCR else None
 
         gather_tasks = [paddle_task]
+        if surya_task is not None:
+            gather_tasks.append(surya_task)
         if azure_task is not None:
             gather_tasks.append(azure_task)
-        if pdf_task is not None:
-            gather_tasks.insert(0, pdf_task)
-
         results = await asyncio.gather(*gather_tasks)
         idx = 0
-        if pdf_task is not None:
-            direct_candidate = results[idx]
-            idx += 1
-            raw_text = direct_candidate.get("text", "")
-            if direct_candidate.get("fields"):
-                candidates["pdf_text"] = direct_candidate
 
         paddle_candidate = results[idx]
         idx += 1
@@ -150,6 +178,15 @@ class OCREngineService:
             raw_text = "\n".join(
                 part for part in [raw_text, paddle_candidate.get("text", "")] if part
             )
+
+        if surya_task is not None:
+            surya_candidate = results[idx]
+            idx += 1
+            if surya_candidate.get("fields") or surya_candidate.get("text"):
+                candidates["surya"] = surya_candidate
+                raw_text = "\n".join(
+                    part for part in [raw_text, surya_candidate.get("text", "")] if part
+                )
 
         if azure_task is not None:
             azure_candidate = results[idx]
@@ -179,12 +216,50 @@ class OCREngineService:
             "raw_text": raw_text,
             "ocr_candidates": candidates,
             "quality_score": quality_score,
+            "document_mode": "rendered_ocr",
             "ocr_engine_latencies_ms": {
                 name: candidate.get("latency_ms") for name, candidate in candidates.items()
             },
         }
 
+    def _is_pdf_text_fast_path(self, candidate: dict[str, Any]) -> bool:
+        """Use direct PDF text when the text layer is dense enough to avoid heavy OCR."""
+        text_chars = int(candidate.get("text_chars") or 0)
+        page_count = max(1, int(candidate.get("page_count") or 1))
+        text_chars_per_page = text_chars / page_count
+        confidence = float(candidate.get("confidence") or 0.0)
+        return (
+            confidence >= settings.OCR_FAST_PATH_QUALITY_THRESHOLD
+            and text_chars >= settings.OCR_PDF_TEXT_MIN_CHARS
+            and text_chars_per_page >= settings.OCR_PDF_TEXT_MIN_CHARS_PER_PAGE
+        )
+
     def _render_page_images(self, file_bytes: bytes, suffix: str) -> list[bytes]:
+        """Call MinerU microservice for preprocessing and rendering."""
+        try:
+            import httpx
+            b64_content = base64.b64encode(file_bytes).decode("ascii")
+            payload = {
+                "document_id": "temp",
+                "doc_type": "invoice",
+                "content_b64": b64_content,
+                "filename": f"temp{suffix}"
+            }
+            url = f"{str(settings.MINERU_SVC_URL).rstrip('/')}/preprocess"
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(url, json=payload)
+                response.raise_for_status()
+                data = response.json()
+                
+            images = []
+            for page in data.get("pages", []):
+                images.append(base64.b64decode(page["image_b64"]))
+            if images:
+                return images
+        except Exception as exc:
+            log.warning("MinerU preprocessing failed, falling back to local PyMuPDF", error=str(exc))
+
+        # Fallback to local rendering
         if suffix == ".pdf":
             try:
                 import fitz
@@ -210,14 +285,21 @@ class OCREngineService:
             import pdfplumber
 
             with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-                text = "\n".join((page.extract_text() or "") for page in pdf.pages)
+                pages = pdf.pages
+                text = "\n".join((page.extract_text() or "") for page in pages)
             fields = extract_ceisa_fields_from_text(text)
-            confidence = 0.98 if text.strip() else 0.0
+            text_chars = len(re.sub(r"\s+", "", text))
+            page_count = len(pages) or 1
+            text_chars_per_page = round(text_chars / page_count, 2)
+            confidence = 1.0 if text_chars_per_page >= settings.OCR_PDF_TEXT_MIN_CHARS_PER_PAGE else 0.0
             return {
                 "fields": fields,
                 "text": text,
                 "confidence": confidence,
                 "overall_confidence": confidence,
+                "page_count": page_count,
+                "text_chars": text_chars,
+                "text_chars_per_page": text_chars_per_page,
                 "latency_ms": round((time.perf_counter() - started) * 1000, 2),
             }
         except Exception as exc:
@@ -232,36 +314,93 @@ class OCREngineService:
     def _run_paddle_sync(self, page_images: list[bytes]) -> dict[str, Any]:
         started = time.perf_counter()
         try:
-            if self._paddle is None:
-                from paddleocr import PaddleOCR
+            import httpx
+            images_b64 = [base64.b64encode(img).decode("ascii") for img in page_images]
+            url = f"{str(settings.PADDLEOCR_SVC_URL).rstrip('/')}/extract"
+            
+            lines = []
+            confidences = []
+            
+            with httpx.Client(timeout=300.0) as client:
+                for img_b64 in images_b64:
+                    payload = {
+                        "image_b64": img_b64,
+                        "doc_type": "bill_of_lading"
+                    }
+                    response = client.post(url, json=payload)
+                    response.raise_for_status()
+                    result = response.json()
+                    
+                    for text_block in result.get("text_blocks_with_bbox", []):
+                        text = text_block.get("text", "")
+                        conf = text_block.get("confidence", 0.0)
+                        if text.strip():
+                            lines.append(text)
+                            confidences.append(conf)
+                
+            text = "\n".join(lines)
+            confidence = sum(confidences) / len(confidences) if confidences else 0.0
+            
+            return {
+                "fields": extract_ceisa_fields_from_text(text),
+                "text": text,
+                "confidence": confidence,
+                "overall_confidence": confidence,
+                "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+            }
+        except Exception as exc:
+            log.warning("PaddleOCR HTTP failed", error=str(exc))
+            return {"fields": {}, "text": "", "confidence": 0.0, "error": str(exc)}
 
-                try:
-                    self._paddle = PaddleOCR(
-                        use_angle_cls=True,
-                        lang=settings.PADDLEOCR_LANG,
-                        show_log=False,
-                    )
-                except TypeError:
-                    self._paddle = PaddleOCR(use_angle_cls=True, lang=settings.PADDLEOCR_LANG)
+    async def _run_surya(self, page_images: list[bytes]) -> dict[str, Any]:
+        if not page_images:
+            return {"fields": {}, "text": "", "confidence": 0.0}
+        return await asyncio.to_thread(self._run_surya_sync, page_images)
 
-            lines: list[str] = []
-            confidences: list[float] = []
-            with tempfile.TemporaryDirectory(prefix="tradeflow-paddle-") as tmpdir:
-                for index, image_bytes in enumerate(page_images):
-                    image_path = Path(tmpdir) / f"page-{index}.png"
-                    image_path.write_bytes(image_bytes)
-                    result = self._paddle.ocr(str(image_path), cls=True)
-                    for page in result or []:
-                        for item in page or []:
-                            if len(item) >= 2 and isinstance(item[1], (list, tuple)):
-                                text = str(item[1][0])
-                                confidence = float(item[1][1])
-                                if text.strip():
-                                    lines.append(text)
-                                    confidences.append(confidence)
+    def _run_surya_sync(self, page_images: list[bytes]) -> dict[str, Any]:
+        started = time.perf_counter()
+        try:
+            import httpx
+            images_b64 = [base64.b64encode(img).decode("ascii") for img in page_images]
+            payload = {
+                "images_b64": images_b64,
+                "languages": ["en", "id"]
+            }
+            url = f"{str(settings.SURYA_INFERENCE_URL).rstrip('/')}/extract"
+            with httpx.Client(timeout=600.0) as client:
+                response = client.post(url, json=payload)
+                response.raise_for_status()
+                result = response.json()
+
+            # Surya v2 response: text_blocks is list[list[dict]] (per page, per block)
+            # Each block has: { text, html, confidence, bbox, polygon, label }
+            lines = []
+            confidences = []
+            text_blocks = result.get("text_blocks", [])
+            for page_blocks in text_blocks:
+                if isinstance(page_blocks, list):
+                    for block in page_blocks:
+                        text = block.get("text", "").strip()
+                        conf = float(block.get("confidence", 1.0))
+                        if text:
+                            lines.append(text)
+                            confidences.append(conf)
+                elif isinstance(page_blocks, dict):
+                    # Fallback: old format where text_blocks is flat list of dicts
+                    text = page_blocks.get("text", "").strip()
+                    conf = float(page_blocks.get("confidence", 1.0))
+                    if text:
+                        lines.append(text)
+                        confidences.append(conf)
+
+            # Also handle legacy flat "text" field
+            if not lines and result.get("text"):
+                lines = [result["text"]]
+                confidences = [result.get("confidence", result.get("overall_confidence", 0.0))]
 
             text = "\n".join(lines)
             confidence = sum(confidences) / len(confidences) if confidences else 0.0
+
             return {
                 "fields": extract_ceisa_fields_from_text(text),
                 "text": text,
@@ -270,8 +409,9 @@ class OCREngineService:
                 "latency_ms": round((time.perf_counter() - started) * 1000, 2),
             }
         except Exception as exc:
-            log.warning("PaddleOCR failed", error=str(exc))
+            log.warning("Surya OCR HTTP failed", error=str(exc))
             return {"fields": {}, "text": "", "confidence": 0.0, "error": str(exc)}
+
 
     async def _run_azure(self, file_bytes: bytes, mime_type: str) -> dict[str, Any]:
         if not settings.ENABLE_DUAL_OCR:

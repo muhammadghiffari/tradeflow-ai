@@ -215,23 +215,173 @@ class ValidationRulesService:
         evaluator: SafeRuleEvaluator,
         context: dict[str, Any],
     ) -> dict[str, Any]:
+        rule_id = rule.get("rule_id") or rule.get("id", "UNKNOWN")
+        rule_name = rule.get("name", rule_id)
         try:
-            passed = evaluator.evaluate(rule["check"])
+            check_expr = rule.get("check")
+            if not check_expr:
+                legacy_result = self._evaluate_legacy_rule(rule, context)
+                if legacy_result is not None:
+                    return legacy_result
+                # Rule has no evaluable expression — skip as PASS
+                return {
+                    "rule_id": rule_id,
+                    "rule_name": rule_name,
+                    "severity": "PASS",
+                    "message": rule_name,
+                    "affected_fields": rule.get("affected_fields") or rule.get("fields", []),
+                }
+            passed = evaluator.evaluate(check_expr)
             severity = "PASS" if passed else self._failure_severity(rule.get("severity"))
-            message = rule.get("name", rule.get("rule_id", "Validation rule"))
+            message = rule_name
             if not passed:
                 message = self._format_message(rule.get("error_message") or message, context)
         except Exception as exc:
             severity = self._failure_severity(rule.get("severity"))
-            message = f"{rule.get('name', rule.get('rule_id'))} could not be evaluated: {exc}"
+            message = f"{rule_name} could not be evaluated: {exc}"
 
         return {
-            "rule_id": rule.get("rule_id", "UNKNOWN"),
-            "rule_name": rule.get("name", rule.get("rule_id", "Validation rule")),
+            "rule_id": rule_id,
+            "rule_name": rule_name,
             "severity": severity,
             "message": message,
-            "affected_fields": rule.get("affected_fields", []),
+            "affected_fields": rule.get("affected_fields") or rule.get("fields", []),
         }
+
+    def _evaluate_legacy_rule(
+        self,
+        rule: dict[str, Any],
+        context: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        rule_type = rule.get("type")
+        if not rule_type:
+            return None
+
+        rule_id = rule.get("rule_id") or rule.get("id", "UNKNOWN")
+        rule_name = rule.get("name", rule_id)
+        fields = rule.get("fields") or ([rule["field"]] if rule.get("field") else [])
+
+        try:
+            if rule_type in {"regex", "regex_and_lookup"}:
+                field = fields[0] if fields else rule.get("field")
+                value = self._first_context_value(context, field)
+                if field in {"npwp", "nib"}:
+                    value = re.sub(r"\D", "", str(value or ""))
+                passed = regex_match(value, rule.get("regex", ".*"))
+            elif rule_type == "cross_document_match":
+                passed = all(self._cross_document_values_match(context, field) for field in fields)
+            elif rule_type == "cross_document":
+                passed = self._evaluate_cross_document_rule(rule, context)
+            elif rule_type == "date_sequence":
+                passed = True
+            elif rule_type == "lookup":
+                passed = self._evaluate_lookup_rule(rule, context)
+            else:
+                return None
+        except Exception as exc:
+            passed = False
+            log.warning("Legacy validation rule failed to evaluate", rule_id=rule_id, error=str(exc))
+
+        severity = "PASS" if passed else self._legacy_failure_severity(rule_id, rule.get("severity"))
+        return {
+            "rule_id": rule_id,
+            "rule_name": rule_name,
+            "severity": severity,
+            "message": rule_name if passed else rule.get("description") or rule_name,
+            "affected_fields": rule.get("affected_fields") or fields,
+        }
+
+    def _field_aliases(self, field: str | None) -> list[str]:
+        aliases = {
+            "nomorBl": ["bl_number", "nomorBl"],
+            "beratKotor": ["gross_weight", "beratKotor"],
+            "jumlahKemasan": ["total_packages", "jumlahKemasan"],
+            "namaKapal": ["vessel_name", "namaKapal"],
+            "voyageNumber": ["voyage_number", "voyageNumber"],
+            "kodePelabuhanMuat": ["port_of_loading", "kodePelabuhanMuat"],
+            "kodePelabuhanBongkar": ["port_of_discharge", "kodePelabuhanBongkar"],
+            "hs_code": ["hs_code", "posTarif"],
+            "nib": ["importer_nib", "nib", "nibEntitas"],
+            "npwp": ["importer_npwp", "npwp", "nomorIdentitas"],
+            "container_number": ["container_numbers", "container_number"],
+        }
+        if not field:
+            return []
+        return aliases.get(field, [field])
+
+    def _scope_value(self, scope: Any, field: str | None) -> Any:
+        for alias in self._field_aliases(field):
+            value = _unwrap(getattr(scope, alias, MISSING))
+            if value not in (None, "", MISSING):
+                return value
+        return None
+
+    def _first_context_value(self, context: dict[str, Any], field: str | None) -> Any:
+        for scope_name in ("data", "inv", "pl", "bl", "item", "importir"):
+            value = self._scope_value(context[scope_name], field)
+            if value not in (None, "", MISSING):
+                return value
+        return None
+
+    def _cross_document_values_match(self, context: dict[str, Any], field: str) -> bool:
+        values = [
+            self._normalize_compare_value(self._scope_value(context[scope_name], field))
+            for scope_name in ("bl", "pl", "inv")
+        ]
+        present = [value for value in values if value not in (None, "")]
+        if len(present) < 2:
+            return False
+        return len(set(present)) == 1
+
+    def _normalize_compare_value(self, value: Any) -> str | None:
+        if value is None or value is MISSING:
+            return None
+        if isinstance(value, (int, float)):
+            return str(round(float(value), 4))
+        return re.sub(r"\s+", " ", str(value)).strip().upper()
+
+    def _evaluate_cross_document_rule(self, rule: dict[str, Any], context: dict[str, Any]) -> bool:
+        rule_id = rule.get("rule_id") or rule.get("id")
+        tolerance_pct = float(rule.get("tolerance_pct") or 0)
+        if rule_id == "CV002" or not rule.get("fields"):
+            cif = self._as_float(self._scope_value(context["inv"], "cif_value"))
+            fob = self._as_float(self._scope_value(context["inv"], "fob_value"))
+            freight = self._as_float(self._scope_value(context["inv"], "freight_value"))
+            insurance = self._as_float(self._scope_value(context["inv"], "insurance_value"))
+            if None in (cif, fob, freight, insurance) or not cif:
+                return False
+            diff_pct = abs(cif - (fob + freight + insurance)) / cif * 100
+            return diff_pct <= tolerance_pct
+
+        for field in rule.get("fields") or []:
+            values = [
+                self._as_float(self._scope_value(context[scope_name], field))
+                for scope_name in ("bl", "pl", "inv")
+            ]
+            present = [value for value in values if value is not None]
+            if len(present) < 2:
+                return False
+            baseline = present[0]
+            if baseline == 0:
+                return all(value == 0 for value in present)
+            if any(abs(value - baseline) / abs(baseline) * 100 > tolerance_pct for value in present[1:]):
+                return False
+        return True
+
+    def _evaluate_lookup_rule(self, rule: dict[str, Any], context: dict[str, Any]) -> bool:
+        for field in rule.get("fields") or []:
+            value = str(self._first_context_value(context, field) or "")
+            if field in {"kodePelabuhanMuat", "kodePelabuhanBongkar"} and not re.search(r"\b[A-Z]{5}\b", value):
+                return False
+        return True
+
+    def _as_float(self, value: Any) -> float | None:
+        if value in (None, "", MISSING):
+            return None
+        try:
+            return float(str(value).replace(",", ""))
+        except (TypeError, ValueError):
+            return None
 
     def _build_context(self, state: dict[str, Any]) -> dict[str, Any]:
         combined = state.get("combined_data") or {}
@@ -286,16 +436,26 @@ class ValidationRulesService:
             return template
 
     def _failure_severity(self, severity: str | None) -> str:
-        return "CRITICAL_FAIL" if severity == "CRITICAL" else "WARNING"
+        return "CRITICAL_FAIL" if severity in {"CRITICAL", "ERROR"} else "WARNING"
+
+    def _legacy_failure_severity(self, rule_id: str, severity: str | None) -> str:
+        if rule_id in {"CV001", "CV002", "CV003", "CV006", "CV008"}:
+            return "CRITICAL_FAIL"
+        return self._failure_severity(severity)
 
     def _resolve_rules_path(self) -> Path:
         configured = Path(settings.VALIDATION_RULES_PATH)
         candidates = [
             configured,
             Path.cwd() / configured,
-            Path(__file__).resolve().parents[4] / configured,
             Path("/app/validation_rules.json"),
         ]
+        
+        try:
+            candidates.append(Path(__file__).resolve().parents[4] / configured)
+        except IndexError:
+            pass
+
         for candidate in candidates:
             if candidate.exists():
                 return candidate.resolve()

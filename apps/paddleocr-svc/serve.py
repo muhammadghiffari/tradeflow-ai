@@ -15,6 +15,13 @@ import io
 import logging
 import os
 
+# -------------------------------------------------------------------------------------
+# The paddlepaddle==3.2.2 downgrade fixed the PIR bug. We can re-enable MKLDNN!
+# -------------------------------------------------------------------------------------
+os.environ["FLAGS_use_mkldnn"] = "1"
+os.environ["PADDLE_PDX_ENABLE_MKLDNN_BYDEFAULT"] = "1"
+os.environ["FLAGS_enable_pir_api"] = "0"
+
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -30,13 +37,22 @@ _kia_engine = None
 @app.on_event("startup")
 async def load_models() -> None:
     global _structure_engine, _kia_engine
-    logger.info("Loading PaddleOCR PP-StructureV3 models…")
+    import os
+    is_cpu = os.environ.get("CUDA_VISIBLE_DEVICES", None) == ""
+    mode = "CPU" if is_cpu else "GPU"
+    logger.info(f"Loading PaddleOCR models ({mode} mode)…")
     try:
-        from paddleocr import PPStructure
-        _structure_engine = PPStructure(table=True, ocr=True, show_log=False, lang="en")
-        logger.info("PP-StructureV3 loaded ✓")
+        from paddleocr import PaddleOCR
+        # CPU/GPU mode controlled by CUDA_VISIBLE_DEVICES env var
+        _structure_engine = PaddleOCR(use_angle_cls=True, lang="en", enable_mkldnn=False)
+        logger.info(f"PaddleOCR loaded ✓ ({mode} mode, MKLDNN disabled)")
     except Exception as e:
-        logger.error(f"PP-StructureV3 load failed: {e}")
+        logger.error(f"PaddleOCR load failed: {e}")
+        try:
+            from paddleocr import PaddleOCR
+            _structure_engine = PaddleOCR(lang="en", enable_mkldnn=False)
+        except Exception as e2:
+            logger.error(f"PaddleOCR fallback load failed: {e2}")
 
     try:
         from paddleocr import ChatOCR
@@ -64,44 +80,36 @@ def _b64_to_cv2(b64_str: str):
     return cv2.imdecode(arr, cv2.IMREAD_COLOR)
 
 
-def _serialize_structure_result(result: list) -> dict:
-    regions, table_cells, text_blocks = [], [], []
-    for item in result:
-        item_type = item.get("type", "unknown")
-        regions.append({"type": item_type, "bbox": item.get("bbox", [])})
-        if item_type == "table":
-            res = item.get("res", {})
-            for cell in res.get("body", []):
-                table_cells.append({
-                    "text": cell.get("transcription", ""),
-                    "bbox": cell.get("bbox", []),
-                    "confidence": round(float(cell.get("score", 0.0)), 3),
-                })
-        elif item_type == "text":
-            res = item.get("res", [])
-            for line in res:
+def _serialize_paddleocr_result(result: list) -> dict:
+    text_blocks = []
+    for page in result or []:
+        for item in page or []:
+            if len(item) >= 2 and isinstance(item[1], (list, tuple)):
+                text = str(item[1][0])
+                confidence = float(item[1][1])
+                bbox = item[0]
                 text_blocks.append({
-                    "text": line[1][0] if len(line) > 1 else "",
-                    "confidence": round(float(line[1][1]) if len(line) > 1 else 0.0, 3),
-                    "bbox": line[0] if line else [],
+                    "text": text,
+                    "confidence": round(confidence, 3),
+                    "bbox": bbox,
                 })
-    return {"regions": regions, "table_cells": table_cells, "text_blocks_with_bbox": text_blocks}
+    return {"regions": [], "table_cells": [], "text_blocks_with_bbox": text_blocks}
 
 
 @app.post("/extract")
 async def extract_layout(request: LayoutRequest) -> dict:
-    """Agent B: PP-StructureV3 layout + table structure analysis."""
+    """Agent B: Standard PaddleOCR analysis."""
     if _structure_engine is None:
-        raise HTTPException(status_code=503, detail="PP-StructureV3 not loaded")
+        raise HTTPException(status_code=503, detail="PaddleOCR not loaded")
     try:
         img = _b64_to_cv2(request.image_b64)
-        result = _structure_engine(img)
-        serialized = _serialize_structure_result(result)
+        result = _structure_engine.ocr(img)
+        serialized = _serialize_paddleocr_result(result)
         serialized["doc_type"] = request.doc_type
-        serialized["reading_order"] = list(range(len(serialized["regions"])))
+        serialized["reading_order"] = list(range(len(serialized.get("regions", []))))
         return serialized
     except Exception as e:
-        logger.exception(f"PP-StructureV3 extraction failed: {e}")
+        logger.exception(f"PaddleOCR extraction failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -98,13 +98,33 @@ async def _persist_graph_result(batch_id: str, result: dict) -> None:
         await supabase.table("batches").update({
             "status": status,
             "risk_level": result.get("risk_level"),
-            "customs_readiness_score": result.get("_crs_score"),
-            "crs_grade": result.get("_crs_grade"),
-            "rejection_probability": result.get("_rejection_prob"),
+            "customs_readiness_score": result.get("customs_readiness_score", result.get("_crs_score")),
+            "crs_grade": result.get("crs_grade", result.get("_crs_grade")),
+            "rejection_probability": result.get("rejection_probability", result.get("_rejection_prob")),
             "langgraph_thread_id": batch_id,
         }).eq("id", batch_id).execute()
     finally:
         pass
+
+
+async def _update_batch_status(batch_id: str, status: str, error_message: str | None = None) -> None:
+    """Best-effort status update for the upload/detail UI."""
+    from supabase import acreate_client
+
+    from ..config import settings
+
+    supabase = await acreate_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY.get_secret_value())
+    payload = {"status": status}
+    try:
+        await supabase.table("batches").update(payload).eq("id", batch_id).execute()
+    except Exception as exc:
+        log.warning(
+            "Failed to update batch status",
+            batch_id=batch_id,
+            status=status,
+            pipeline_error=error_message,
+            error=str(exc),
+        )
 
 
 def _average_confidence(confidences: dict) -> float:
@@ -112,17 +132,15 @@ def _average_confidence(confidences: dict) -> float:
     return round(sum(values) / len(values), 4) if values else 0.0
 
 
-@celery_app.task(bind=True, queue="high", max_retries=3, default_retry_delay=10)
-def preprocess_document(self, batch_id: str) -> None:
-    """Entry point: kicks off LangGraph extraction pipeline."""
-    import asyncio
-
+def run_preprocess_pipeline_sync(batch_id: str, mark_error_on_failure: bool = False) -> None:
+    """Run the extraction pipeline in-process when Celery is unavailable."""
     from ..ai.graph import extraction_graph
-    log.info("Starting extraction pipeline", batch_id=batch_id)
+    from .celery_app import get_worker_loop
+
+    loop = get_worker_loop()
     try:
-        from .celery_app import get_worker_loop
-        loop = get_worker_loop()
         config = {"configurable": {"thread_id": batch_id}}
+        loop.run_until_complete(_update_batch_status(batch_id, "ocr_running"))
         context = loop.run_until_complete(_load_batch_context(batch_id))
         initial_state = {
             "batch_id": batch_id,
@@ -132,18 +150,38 @@ def preprocess_document(self, batch_id: str) -> None:
             "validation_results": [],
             "needs_human_review": False,
             "risk_level": "UNKNOWN",
+            "customs_readiness_score": None,
+            "crs_grade": None,
+            "rejection_probability": None,
+            "risk_features": {},
             "ocr_conflicts": [],
             "field_confidences": {},
             "steps": [],
         }
-        # Run sync wrapper around async graph
         result = loop.run_until_complete(
             extraction_graph.ainvoke(initial_state, config=config)
         )
         loop.run_until_complete(_persist_graph_result(batch_id, result))
+    except Exception as exc:
+        if mark_error_on_failure:
+            loop.run_until_complete(_update_batch_status(batch_id, "error", str(exc)))
+        raise
+
+
+@celery_app.task(bind=True, queue="high", max_retries=3, default_retry_delay=10)
+def preprocess_document(self, batch_id: str) -> None:
+    """Entry point: kicks off LangGraph extraction pipeline."""
+    log.info("Starting extraction pipeline", batch_id=batch_id)
+    try:
+        run_preprocess_pipeline_sync(batch_id)
         log.info("Extraction pipeline complete", batch_id=batch_id)
     except Exception as exc:
         log.error("Pipeline failed", batch_id=batch_id, error=str(exc))
+        if self.request.retries >= self.max_retries:
+            from .celery_app import get_worker_loop
+
+            loop = get_worker_loop()
+            loop.run_until_complete(_update_batch_status(batch_id, "error", str(exc)))
         raise self.retry(exc=exc)
 
 

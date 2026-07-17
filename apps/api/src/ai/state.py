@@ -28,6 +28,10 @@ class ExtractionGraphState(TypedDict):
     validation_results: list[dict]
     needs_human_review: bool
     risk_level: str
+    customs_readiness_score: float | None
+    crs_grade: str | None
+    rejection_probability: float | None
+    risk_features: dict
     ocr_conflicts: list[dict]
     field_confidences: dict[str, float]
     # Keep track of which node executed

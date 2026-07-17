@@ -1,3 +1,5 @@
+"use client";
+
 import { CRSGauge } from "@/components/crs-gauge";
 import { cn } from "@/lib/utils";
 import {
@@ -7,8 +9,11 @@ import {
   ArrowUpRight,
   Clock,
   FileCheck2,
+  Loader2,
   TrendingUp,
 } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 // ── Mock data (replaced by real API in Phase 5) ───────────────────────────────
 const kpis = [
@@ -50,54 +55,6 @@ const kpis = [
   },
 ];
 
-const recentBatches = [
-  {
-    id: "b-001",
-    ref: "PIB-A1B2C3D4E5",
-    status: "accepted",
-    crs: 88,
-    grade: "B",
-    risk: "LOW",
-    time: "2 min ago",
-  },
-  {
-    id: "b-002",
-    ref: "PIB-F6G7H8I9J0",
-    status: "reviewing",
-    crs: 65,
-    grade: "D",
-    risk: "HIGH",
-    time: "15 min ago",
-  },
-  {
-    id: "b-003",
-    ref: "PIB-K1L2M3N4O5",
-    status: "accepted",
-    crs: 95,
-    grade: "A",
-    risk: "LOW",
-    time: "1 hr ago",
-  },
-  {
-    id: "b-004",
-    ref: "PIB-P6Q7R8S9T0",
-    status: "rejected",
-    crs: 42,
-    grade: "F",
-    risk: "CRITICAL",
-    time: "2 hr ago",
-  },
-  {
-    id: "b-005",
-    ref: "PIB-U1V2W3X4Y5",
-    status: "processing",
-    crs: 72,
-    grade: "C",
-    risk: "MEDIUM",
-    time: "3 hr ago",
-  },
-];
-
 const RISK_CLASSES: Record<string, string> = {
   LOW: "risk-low",
   MEDIUM: "risk-medium",
@@ -105,7 +62,61 @@ const RISK_CLASSES: Record<string, string> = {
   CRITICAL: "risk-critical",
 };
 
+type BatchListItem = {
+  id: string;
+  status: string;
+  customs_readiness_score?: number | null;
+  crs_grade?: string | null;
+  risk_level?: string | null;
+  created_at?: string | null;
+};
+
+const PROCESSING_STATUSES = new Set(["uploaded", "preprocessing", "ocr_running", "extracting", "validating"]);
+
+function formatBatchRef(id: string) {
+  return `PIB-${id.slice(0, 8).toUpperCase()}`;
+}
+
+function formatRelativeTime(iso?: string | null) {
+  if (!iso) return "just now";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.max(0, Math.floor(diffMs / 60000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  return `${Math.floor(hours / 24)} d ago`;
+}
+
 export default function DashboardPage() {
+  const [recentBatches, setRecentBatches] = useState<BatchListItem[]>([]);
+  const [isLoadingBatches, setIsLoadingBatches] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function fetchBatches() {
+      try {
+        const res = await fetch("/api/v1/batches");
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        if (active) setRecentBatches((data.batches || []).slice(0, 5));
+      } catch (err) {
+        console.error("Failed to load recent declarations", err);
+      } finally {
+        if (active) setIsLoadingBatches(false);
+      }
+    }
+
+    fetchBatches();
+    const timer = window.setInterval(fetchBatches, 5000);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
@@ -159,15 +170,26 @@ export default function DashboardPage() {
             </a>
           </div>
           <div className="divide-y divide-white/5">
-            {recentBatches.map((b) => (
-              <a
+            {isLoadingBatches ? (
+              <div className="flex items-center justify-center gap-2 px-6 py-10 text-sm text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading live declarations...
+              </div>
+            ) : recentBatches.length > 0 ? (
+              recentBatches.map((b) => {
+                const risk = b.risk_level || "LOW";
+                const score = Math.round(Number(b.customs_readiness_score ?? 0));
+                const isProcessing = PROCESSING_STATUSES.has(b.status);
+
+                return (
+              <Link
                 key={b.id}
                 href={`/batches/${b.id}`}
                 className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.02] transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-mono font-semibold text-slate-200 truncate group-hover:text-cyan-400">{b.ref}</p>
-                  <p className="text-xs text-slate-500 mt-1 font-medium">{b.time}</p>
+                  <p className="text-sm font-mono font-semibold text-slate-200 truncate group-hover:text-cyan-400">{formatBatchRef(b.id)}</p>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">{formatRelativeTime(b.created_at)}</p>
                 </div>
                 <span
                   className={cn(
@@ -176,25 +198,33 @@ export default function DashboardPage() {
                       ? "accepted"
                       : b.status === "rejected"
                         ? "rejected"
-                        : b.status === "reviewing"
+                        : b.status === "review_ready" || b.status === "reviewing"
                           ? "review"
                           : "processing",
                   )}
                 >
                   <span className="h-1 w-1 rounded-full bg-current" />
-                  {b.status}
+                  {b.status.replace("_", " ")}
                 </span>
                 <span
                   className={cn(
                     "rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wide",
-                    RISK_CLASSES[b.risk],
+                    RISK_CLASSES[risk] ?? RISK_CLASSES.LOW,
                   )}
                 >
-                  {b.risk}
+                  {risk}
                 </span>
-                <span className="text-sm font-bold w-10 text-right font-mono bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-300">{b.crs}</span>
-              </a>
-            ))}
+                <span className="text-sm font-bold w-10 text-right font-mono bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-300">
+                  {isProcessing ? "..." : score}
+                </span>
+              </Link>
+                );
+              })
+            ) : (
+              <div className="px-6 py-10 text-center text-sm text-slate-500">
+                No declarations yet. Upload a CIPL set to start extraction.
+              </div>
+            )}
           </div>
         </div>
 

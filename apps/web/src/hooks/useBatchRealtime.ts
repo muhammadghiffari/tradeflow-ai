@@ -18,11 +18,16 @@ const supabase = createClient(
 export type BatchStatus =
   | "uploading"
   | "preprocessing"
+  | "ocr_running"
+  | "extracting"
+  | "validating"
   | "processing"
+  | "validated"
   | "review_ready"
   | "submitted"
   | "accepted"
   | "rejected"
+  | "error"
   | "failed";
 
 export interface BatchRealtimeState {

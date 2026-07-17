@@ -22,7 +22,10 @@ def _needs_reconciliation(doc: dict) -> bool:
         or not doc.get("extracted_data")
         or doc.get("quality_score", 1.0) < settings.OCR_FALLBACK_TRIGGER_QUALITY
         or bool(doc.get("ocr_conflicts"))
-        or len(doc.get("ocr_candidates") or {}) > 1
+        or (
+            len(doc.get("ocr_candidates") or {}) > 1
+            and doc.get("document_mode") != "digital_pdf_text"
+        )
         or bool(
             confidences
             and min(confidences.values()) < settings.OCR_FALLBACK_TRIGGER_CONFIDENCE

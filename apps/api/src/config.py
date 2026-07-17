@@ -59,6 +59,9 @@ class Settings(BaseSettings):
 
     # ── AI Inference Services (SDD §2.3–2.6) ─────────────────────────────────
     CLOUD_LLM_ONLY: bool = False                                    # Bypass heavy local models and use Gemini API instead
+    ENABLE_DUAL_OCR: bool = False                                   # Use both Surya and PaddleOCR for fallback/validation
+    OCR_FALLBACK_TRIGGER_QUALITY: float = 0.85                      # Fallback threshold
+    OCR_FALLBACK_TRIGGER_CONFIDENCE: float = 0.80
     SURYA_INFERENCE_URL: AnyHttpUrl = "http://surya-svc:8001"       # Agent A
     OLM_INFERENCE_URL: AnyHttpUrl = "http://olm-inference:8000"     # Agent D
     PADDLEOCR_SVC_URL: AnyHttpUrl = "http://paddleocr-svc:8002"     # Agent B
@@ -70,6 +73,7 @@ class Settings(BaseSettings):
     # ── Azure Document Intelligence — Agent C ─────────────────────────────────
     AZURE_DI_ENDPOINT: str | None = None
     AZURE_DI_KEY: SecretStr = ""  # type: ignore[assignment]
+    AZURE_DI_MODEL_ID: str = "prebuilt-read"
     AZURE_DI_FREE_LIMIT: int = 5000   # Pages/month on F0 tier (Invariant #9)
 
     # ── CEISA (Simulator in dev, real endpoint in prod) ───────────────────────
@@ -101,9 +105,12 @@ class Settings(BaseSettings):
     CHROMADB_PORT: int = 8000
 
     # ── AI / LLM ─────────────────────────────────────────────────────────────
+    USE_LOCAL_LLM: bool = False
+    LOCAL_LLM_MODEL: str = "qwen2.5:7b"
+    OLLAMA_BASE_URL: str = "http://host.docker.internal:11434/v1"
     GEMINI_API_KEY: SecretStr = Field(..., description="Google Gemini API key")
-    GEMINI_MODEL_PRIMARY: str = "gemini-2.5-pro"
-    GEMINI_MODEL_FALLBACK: str = "gemini-2.5-flash"
+    GEMINI_MODEL_PRIMARY: str = "gemini-3.5-flash"
+    GEMINI_MODEL_FALLBACK: str = "gemini-3.1-flash-lite"
     OPENAI_API_KEY: SecretStr = ""  # type: ignore[assignment]
     EMBEDDING_MODEL: str = "text-embedding-3-small"
 
@@ -131,6 +138,8 @@ class Settings(BaseSettings):
     OCR_MAX_RENDERED_PAGES: int = 10
     OCR_MAX_LLM_PAGES: int = 5
     OCR_FAST_PATH_QUALITY_THRESHOLD: float = 0.95
+    OCR_PDF_TEXT_MIN_CHARS: int = 250
+    OCR_PDF_TEXT_MIN_CHARS_PER_PAGE: int = 80
     OCR_RECONCILIATION_DISAGREEMENT_THRESHOLD: float = 0.20
     LLM_CONFIDENCE_REVIEW_THRESHOLD: float = 0.70
     CRS_MIN_SUBMIT_THRESHOLD: int = 55
@@ -157,9 +166,12 @@ class Settings(BaseSettings):
     DRIFT_LOOKBACK_DAYS: int = 30
     DRIFT_CORRECTION_THRESHOLD: int = 50
 
-    # ── Celery ────────────────────────────────────────────────────────────────
-    CELERY_TASK_SOFT_TIME_LIMIT: int = 300
-    CELERY_TASK_TIME_LIMIT: int = 600
+    # Celery Configuration
+    CELERY_BROKER_URL: str = "redis://redis:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://redis:6379/0"
+    CELERY_TASK_SOFT_TIME_LIMIT: int = 1800  # 30 minutes for slow OCR models
+    CELERY_TASK_TIME_LIMIT: int = 1900
+    RUN_OCR_IN_API_BACKGROUND: bool = False
 
     # ── Observability ─────────────────────────────────────────────────────────
     SENTRY_DSN: str = ""
@@ -189,8 +201,8 @@ class CeleryConfig:
     accept_content = ["json"]
     timezone = "Asia/Jakarta"
     enable_utc = True
-    task_soft_time_limit = 300
-    task_time_limit = 600
+    task_soft_time_limit = 600
+    task_time_limit = 700
     task_acks_late = True           # Ack only after successful completion (NFR-016)
     worker_prefetch_multiplier = 1  # One task at a time per worker
 

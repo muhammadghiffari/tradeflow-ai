@@ -1,0 +1,214 @@
+{
+  "case_name": "CIPL_HappyPath_CDP_01",
+  "purpose": "Synthetic full CIPL triple (B/L+PL+Invoice), internally consistent, designed to pass all CV001-CV011 rules and CEISA simulator scenario S01 (Always Accept).",
+  "files": {
+    "bill_of_lading": "BL_MAEU-CT-08842.pdf",
+    "packing_list": "PL_ZSI-2026-0614.pdf",
+    "commercial_invoice": "Invoice_ZSI-2026-0614.pdf"
+  },
+  "carrier": "Maersk Line",
+  "scac": "MAEU",
+  "source_documents_breakdown": {
+    "from_bill_of_lading": [
+      "nomorBl",
+      "namaKapal",
+      "voyageNumber",
+      "kodePelabuhanMuat",
+      "kodePelabuhanBongkar",
+      "place_of_receipt",
+      "place_of_delivery",
+      "container_no",
+      "seal_no",
+      "jumlahKemasan",
+      "beratKotor",
+      "measurement_cbm",
+      "tglBl",
+      "incoterm",
+      "freight_terms",
+      "num_original_bl"
+    ],
+    "from_packing_list": [
+      "jumlahKemasan (per item)",
+      "beratBersih (per item)",
+      "beratKotor (per item, cross-checked vs B/L)",
+      "uraian",
+      "hs_code",
+      "container_no (cross-check key)"
+    ],
+    "from_commercial_invoice": [
+      "fob",
+      "freight",
+      "asuransi",
+      "cif",
+      "currency",
+      "nibEntitas",
+      "nomorIdentitas (NPWP)",
+      "namaEntitas",
+      "alamatEntitas",
+      "invoice_no",
+      "po_no"
+    ]
+  },
+  "ceisa_fields": {
+    "nomorBl": "MAEU-CT-08842",
+    "namaKapal": "MAERSK NINGBO",
+    "voyageNumber": "118W",
+    "kodePelabuhanMuat": "CNNGB",
+    "kodePelabuhanBongkar": "IDJBK",
+    "kodePelabuhanTujuan": "IDJBK",
+    "place_of_receipt": "NINGBO CFS",
+    "place_of_delivery": "CIKARANG DRY PORT (IDJBK)",
+    "jumlahKemasan": 480,
+    "kodeJenisKemasan": "CT",
+    "beratKotor": 16250.0,
+    "beratBersih": 15290.0,
+    "measurement_cbm": 85.1,
+    "jumlah_kontainer": 3,
+    "movement": "FCL/FCL",
+    "tglBl": "2026-06-12",
+    "incoterm": "CIF CIKARANG DRY PORT",
+    "freight_terms": "OCEAN FREIGHT PREPAID",
+    "place_of_issue": "NINGBO",
+    "num_original_bl": 3,
+    "namaShipper": "ZHEJIANG SUNRISE INDUSTRIAL CO., LTD.",
+    "namaKonsignee": "PT. CAKRA MANUFAKTUR INDONESIA, KAWASAN INDUSTRI JABABEKA, JL. JABABEKA RAYA BLOK F NO. 12, CIKARANG SELATAN, BEKASI, JAWA BARAT 17530, INDONESIA",
+    "nibEntitas": "8120012345678",
+    "nomorIdentitas": "01.234.567.8-407.000",
+    "fob": 150625.0,
+    "freight": 4500.0,
+    "asuransi": 325.0,
+    "cif": 155450.0,
+    "currency": "USD",
+    "invoice_no": "ZSI-2026-0614",
+    "invoice_date": "2026-06-10",
+    "po_no": "PO-CMI-20260501-01",
+    "barang": [
+      {
+        "seriBarang": 1,
+        "uraian": "PRECISION INJECTION MOLD COMPONENTS",
+        "posTarif": "84807900",
+        "jumlahSatuan": 4000,
+        "kodeSatuanBarang": "SET",
+        "container_no": "MRKU1234567",
+        "seal_no": "SL001234",
+        "jumlahKemasan": 160,
+        "beratBersih": 5100.0,
+        "beratKotor": 5420.0,
+        "nilaiBarang": 50000.0
+      },
+      {
+        "seriBarang": 2,
+        "uraian": "PRECISION INJECTION MOLD COMPONENTS",
+        "posTarif": "84807900",
+        "jumlahSatuan": 4000,
+        "kodeSatuanBarang": "SET",
+        "container_no": "MRKU2345678",
+        "seal_no": "SL001235",
+        "jumlahKemasan": 160,
+        "beratBersih": 5060.0,
+        "beratKotor": 5380.0,
+        "nilaiBarang": 50000.0
+      },
+      {
+        "seriBarang": 3,
+        "uraian": "PRECISION INJECTION MOLD COMPONENTS",
+        "posTarif": "84807900",
+        "jumlahSatuan": 4050,
+        "kodeSatuanBarang": "SET",
+        "container_no": "MRKU3456789",
+        "seal_no": "SL001236",
+        "jumlahKemasan": 160,
+        "beratBersih": 5130.0,
+        "beratKotor": 5450.0,
+        "nilaiBarang": 50625.0
+      }
+    ]
+  },
+  "cross_document_validation": [
+    {
+      "rule_id": "CV001",
+      "name": "Package count consistency (B/L = PL)",
+      "bl_value": 480,
+      "pl_value": 480,
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV002",
+      "name": "CIF = FOB + freight + insurance (<=5%)",
+      "computed_cif": 155450.0,
+      "stated_cif": 155450.0,
+      "diff_pct": 0.0,
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV003",
+      "name": "B/L date <= arrival date",
+      "bl_date": "2026-06-12",
+      "note": "arrival after loading date",
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV004",
+      "name": "Currency match (invoice = packing list)",
+      "invoice_currency": "USD",
+      "pl_currency": "USD",
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV005",
+      "name": "Gross weight tolerance 2% (B/L vs sum PL items)",
+      "bl_gross_kg": 16250.0,
+      "pl_sum_gross_kg": 16250.0,
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV006",
+      "name": "HS code format (8-digit BTKI)",
+      "hs_code": "84807900",
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV007",
+      "name": "NPWP checksum valid",
+      "npwp": "01.234.567.8-407.000",
+      "result": "PASS (synthetic - format only, not a real checksum)"
+    },
+    {
+      "rule_id": "CV008",
+      "name": "NIB format (13 digits)",
+      "nib": "8120012345678",
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV009",
+      "name": "Port of delivery is CDP (IDJBK)",
+      "port_discharge_code": "IDJBK",
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV010",
+      "name": "Line item count consistency (PL vs invoice, <=1 diff)",
+      "pl_items": 3,
+      "invoice_items": 3,
+      "result": "PASS"
+    },
+    {
+      "rule_id": "CV011",
+      "name": "Vessel name consistency B/L vs AIS",
+      "vessel": "MAERSK NINGBO",
+      "voyage": "118W",
+      "note": "assumes AIS lookup confirms vessel/voyage - not verifiable offline",
+      "result": "ASSUMED PASS"
+    }
+  ],
+  "expected_ceisa_simulator_result": {
+    "scenario": "S01 (Always Accept)",
+    "status": "ACCEPTED",
+    "note": "Under S06 (Mixed Realistic) this same payload should still land in the ~70% ACCEPTED bucket, since no CV rule fails and no lartas HS code is present."
+  },
+  "notes": [
+    "SYNTHETIC DATA - no real company, NIB, or NPWP. Safe to redistribute for testing/training.",
+    "HS code 84807900 (injection/compression moulds) is not on the INSW lartas list -> insw_flag: false.",
+    "Container + seal number is used as the join key across B/L, PL and Invoice line items - do not join purely by row position, since row order can differ between documents."
+  ]
+}

@@ -1,0 +1,17 @@
+# ─────────────────────────────────────────────────────────────
+# olm-inference requirements (Agent D)
+# Pin versions for reproducible builds.
+#
+# vLLM 0.6.x is specified in PRD v5.2 (line 2463).
+# CUDA 12.1 runtime provided by base Docker image.
+# ─────────────────────────────────────────────────────────────
+
+# Core inference
+vllm>=0.6.0,<0.7.0
+huggingface_hub>=0.23.0,<1.0.0
+
+# LoRA adapter support
+peft>=0.14.0,<1.0.0
+
+# Health check endpoint (vLLM OpenAI server includes this, but explicit)
+fastapi>=0.111.0,<1.0.0

@@ -28,6 +28,7 @@ export default function UploadPage() {
   const [slots, setSlots] = useState<FileSlot[]>(INITIAL_SLOTS);
   const [dragging, setDragging] = useState<DocSlot | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadStep, setUploadStep] = useState<string | null>(null);
   const inputRefs = useRef<Record<DocSlot, HTMLInputElement | null>>({
     bill_of_lading: null,
     packing_list: null,
@@ -58,10 +59,12 @@ export default function UploadPage() {
       return;
     }
     setUploading(true);
+    setUploadStep("Uploading files to secure storage...");
     try {
       const form = new FormData();
-      for (const { file } of slots) {
+      for (const { slot, file } of slots) {
         if (file) form.append("files", file);
+        if (file) form.append("doc_types", slot);
       }
 
       // @ts-ignore — accessToken is added via NextAuth callbacks
@@ -75,10 +78,12 @@ export default function UploadPage() {
       if (!res.ok) throw new Error(await res.text());
       const { batch_id } = await res.json();
 
+      setUploadStep("OCR job queued. Opening live processing view...");
       toast.success("Documents uploaded! Processing has started.");
       router.push(`/batches/${batch_id}`);
     } catch (err: unknown) {
       toast.error(`Upload failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+      setUploadStep(null);
     } finally {
       setUploading(false);
     }
@@ -188,6 +193,27 @@ export default function UploadPage() {
           </p>
         </div>
       </div>
+
+      <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3.5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Demo OCR Stack</p>
+            <p className="mt-1 text-xs font-medium leading-relaxed text-slate-400">
+              Direct PDF text, PaddleOCR, Surya OCR, Azure DI when configured, then Gemini or local LLM extraction.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+            Scanning
+          </span>
+        </div>
+      </div>
+
+      {uploadStep && (
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 flex items-center gap-3 text-sm text-cyan-100">
+          <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+          <span className="font-semibold">{uploadStep}</span>
+        </div>
+      )}
 
       {/* Submit */}
       <button

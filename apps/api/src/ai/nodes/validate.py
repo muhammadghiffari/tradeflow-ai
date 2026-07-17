@@ -12,10 +12,20 @@ log = structlog.get_logger()
 async def validation_node(state: ExtractionGraphState) -> dict:
     """
     Step 2.4: Cross-Document Validation against JSON rules.
+    Gracefully handles rule evaluation errors to avoid crashing the pipeline.
     """
     log.info("Running validation_node", batch_id=state["batch_id"])
 
-    results, needs_review = validation_rules_service.evaluate(state)
+    try:
+        results, needs_review = validation_rules_service.evaluate(state)
+    except Exception as exc:
+        log.warning(
+            "Validation rules evaluation failed — marking for review",
+            batch_id=state["batch_id"],
+            error=str(exc),
+        )
+        results = []
+        needs_review = True
 
     return {
         "validation_results": results,

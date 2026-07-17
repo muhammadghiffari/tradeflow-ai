@@ -11,7 +11,7 @@ COPY apps/web/package.json ./apps/web/
 ENV PNPM_CONFIG_FETCH_RETRIES=10 \
     PNPM_CONFIG_FETCH_TIMEOUT=600000 \
     PNPM_CONFIG_NETWORK_CONCURRENCY=1 \
-    PNPM_CONFIG_REGISTRY=https://registry.npmjs.org/ \
+    PNPM_CONFIG_REGISTRY=https://registry.npmmirror.com/ \
     PNPM_STORE_PATH=/pnpm-store \
     HTTP_PROXY= \
     HTTPS_PROXY= \

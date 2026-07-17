@@ -45,7 +45,7 @@ def _needs_fallback(state: ExtractionGraphState) -> str:
             return "fallback"
         if doc.get("ocr_conflicts"):
             return "fallback"
-        if len(doc.get("ocr_candidates") or {}) > 1:
+        if len(doc.get("ocr_candidates") or {}) > 1 and doc.get("document_mode") != "digital_pdf_text":
             return "fallback"
     return "validate"
 
