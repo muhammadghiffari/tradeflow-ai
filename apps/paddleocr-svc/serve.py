@@ -14,6 +14,7 @@ import base64
 import io
 import logging
 import os
+import threading
 
 # -------------------------------------------------------------------------------------
 # The paddlepaddle==3.2.2 downgrade fixed the PIR bug. We can re-enable MKLDNN!
@@ -32,27 +33,40 @@ app = FastAPI(title="PaddleOCR 3.0 Service", version="1.0.0")
 
 _structure_engine = None
 _kia_engine = None
+_load_error: str | None = None
 
 
 @app.on_event("startup")
 async def load_models() -> None:
+    thread = threading.Thread(target=_load_models_sync, name="paddleocr-loader", daemon=True)
+    thread.start()
+
+
+def _load_models_sync() -> None:
     global _structure_engine, _kia_engine
+    global _load_error
     import os
     is_cpu = os.environ.get("CUDA_VISIBLE_DEVICES", None) == ""
     mode = "CPU" if is_cpu else "GPU"
     logger.info(f"Loading PaddleOCR models ({mode} mode)…")
     try:
         from paddleocr import PaddleOCR
-        # CPU/GPU mode controlled by CUDA_VISIBLE_DEVICES env var
-        _structure_engine = PaddleOCR(use_angle_cls=True, lang="en", enable_mkldnn=False)
+        _structure_engine = PaddleOCR(
+            lang="en",
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=False,
+            use_textline_orientation=False,
+        )
         logger.info(f"PaddleOCR loaded ✓ ({mode} mode, MKLDNN disabled)")
     except Exception as e:
         logger.error(f"PaddleOCR load failed: {e}")
         try:
             from paddleocr import PaddleOCR
             _structure_engine = PaddleOCR(lang="en", enable_mkldnn=False)
+            logger.info(f"PaddleOCR loaded ({mode} mode, compatibility fallback)")
         except Exception as e2:
             logger.error(f"PaddleOCR fallback load failed: {e2}")
+            _load_error = str(e2)
 
     try:
         from paddleocr import ChatOCR
@@ -145,4 +159,8 @@ async def key_info_extraction(request: KIARequest) -> dict:
 @app.get("/health")
 async def health() -> JSONResponse:
     loaded = _structure_engine is not None
-    return JSONResponse({"status": "ok" if loaded else "loading", "model": "paddleocr-3.0"})
+    payload = {"status": "ok" if loaded else "loading", "model": "paddleocr-3.0"}
+    if _load_error:
+        payload["status"] = "error"
+        payload["error"] = _load_error
+    return JSONResponse(payload)

@@ -267,9 +267,15 @@ class ValidationRulesService:
                 value = self._first_context_value(context, field)
                 if field in {"npwp", "nib"}:
                     value = re.sub(r"\D", "", str(value or ""))
-                passed = regex_match(value, rule.get("regex", ".*"))
+                if field == "container_number":
+                    containers = self._container_values(value)
+                    passed = bool(containers) and all(
+                        regex_match(container, rule.get("regex", ".*")) for container in containers
+                    )
+                else:
+                    passed = regex_match(value, rule.get("regex", ".*"))
             elif rule_type == "cross_document_match":
-                passed = all(self._cross_document_values_match(context, field) for field in fields)
+                passed = all(self._cross_document_values_match(context, field, rule_id) for field in fields)
             elif rule_type == "cross_document":
                 passed = self._evaluate_cross_document_rule(rule, context)
             elif rule_type == "date_sequence":
@@ -323,15 +329,23 @@ class ValidationRulesService:
                 return value
         return None
 
-    def _cross_document_values_match(self, context: dict[str, Any], field: str) -> bool:
+    def _cross_document_values_match(self, context: dict[str, Any], field: str, rule_id: str | None = None) -> bool:
+        scope_names = self._cross_document_scopes(rule_id, field)
         values = [
             self._normalize_compare_value(self._scope_value(context[scope_name], field))
-            for scope_name in ("bl", "pl", "inv")
+            for scope_name in scope_names
         ]
         present = [value for value in values if value not in (None, "")]
         if len(present) < 2:
-            return False
+            return True
         return len(set(present)) == 1
+
+    def _cross_document_scopes(self, rule_id: str | None, field: str | None) -> tuple[str, ...]:
+        if rule_id == "CV008" or field == "jumlahKemasan":
+            return ("bl", "pl")
+        if rule_id == "CV007" or field == "beratKotor":
+            return ("bl", "pl")
+        return ("bl", "pl", "inv")
 
     def _normalize_compare_value(self, value: Any) -> str | None:
         if value is None or value is MISSING:
@@ -354,13 +368,14 @@ class ValidationRulesService:
             return diff_pct <= tolerance_pct
 
         for field in rule.get("fields") or []:
+            scope_names = self._cross_document_scopes(rule_id, field)
             values = [
                 self._as_float(self._scope_value(context[scope_name], field))
-                for scope_name in ("bl", "pl", "inv")
+                for scope_name in scope_names
             ]
             present = [value for value in values if value is not None]
             if len(present) < 2:
-                return False
+                return True
             baseline = present[0]
             if baseline == 0:
                 return all(value == 0 for value in present)
@@ -395,9 +410,9 @@ class ValidationRulesService:
             if doc_type in by_type:
                 by_type[doc_type].update(doc.get("extracted_data") or {})
 
-        bl = {**combined, **by_type["bill_of_lading"]}
-        pl = {**combined, **by_type["packing_list"]}
-        inv = {**combined, **by_type["invoice"]}
+        bl = by_type["bill_of_lading"]
+        pl = by_type["packing_list"]
+        inv = by_type["invoice"]
         for scoped in (bl, pl, inv):
             if "currency_code" not in scoped and scoped.get("currency"):
                 scoped["currency_code"] = scoped["currency"]
@@ -439,9 +454,14 @@ class ValidationRulesService:
         return "CRITICAL_FAIL" if severity in {"CRITICAL", "ERROR"} else "WARNING"
 
     def _legacy_failure_severity(self, rule_id: str, severity: str | None) -> str:
-        if rule_id in {"CV001", "CV002", "CV003", "CV006", "CV008"}:
+        if rule_id in {"CV001", "CV002", "CV003", "CV006"}:
             return "CRITICAL_FAIL"
         return self._failure_severity(severity)
+
+    def _container_values(self, value: Any) -> list[str]:
+        if value in (None, "", MISSING):
+            return []
+        return re.findall(r"[A-Z]{4}\d{7}", str(value).upper())
 
     def _resolve_rules_path(self) -> Path:
         configured = Path(settings.VALIDATION_RULES_PATH)

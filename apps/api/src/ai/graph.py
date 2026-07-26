@@ -40,6 +40,8 @@ def _needs_fallback(state: ExtractionGraphState) -> str:
             return "fallback"
         if doc.get("quality_score", 1.0) < settings.OCR_FALLBACK_TRIGGER_QUALITY:
             return "fallback"
+        if doc.get("document_mode") == "digital_pdf_text" and doc.get("ocr_method") == "digital_text_parser":
+            continue
         confidences = doc.get("field_confidences") or {}
         if confidences and min(confidences.values()) < settings.OCR_FALLBACK_TRIGGER_CONFIDENCE:
             return "fallback"

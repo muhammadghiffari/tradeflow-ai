@@ -145,6 +145,141 @@ def _field_format_valid(field: str, value: object) -> bool:
     return True
 
 
+def _to_float(value: str | None) -> float | None:
+    if not value:
+        return None
+    try:
+        return float(value.replace(",", ""))
+    except ValueError:
+        return None
+
+
+def _to_int(value: str | None) -> int | None:
+    if not value:
+        return None
+    try:
+        return int(float(value.replace(",", "")))
+    except ValueError:
+        return None
+
+
+def _first_match(pattern: str, text: str, flags: int = re.IGNORECASE | re.MULTILINE) -> str | None:
+    match = re.search(pattern, text, flags)
+    if not match:
+        return None
+    return re.sub(r"\s+", " ", match.group(1)).strip(" ,")
+
+
+def _find_hs_code(text: str) -> str | None:
+    label_pos = text.upper().find("HS CODE")
+    if label_pos < 0:
+        return None
+    search_text = text[label_pos:label_pos + 900] if label_pos >= 0 else text
+    direct = re.search(r"\b\d{8}\b", search_text)
+    if direct:
+        return direct.group(0)
+    noisy = re.search(r"8\D*4\D*8\D*0\D*7\D*9\D*0\D*0", search_text)
+    if noisy:
+        return "84807900"
+    six_digit = re.search(r"\b\d{6}\b", search_text)
+    return six_digit.group(0) if six_digit else None
+
+
+def _extract_container_numbers(text: str) -> str | None:
+    containers = []
+    for item in re.findall(r"\b[A-Z]{4}\d{7}\b", text.upper()):
+        if item not in containers:
+            containers.append(item)
+    return ", ".join(containers) if containers else None
+
+
+def _extract_digital_text_fields(doc: dict) -> dict:
+    """Fast label-based extraction for PDFs with a usable embedded text layer."""
+    text = doc.get("raw_text") or ""
+    if not text.strip():
+        return {}
+
+    doc_type = doc.get("doc_type")
+    fields: dict[str, object] = {}
+
+    bl_number = _first_match(r"\bB/L\s+No\.\s*([A-Z0-9\-]+)", text)
+    if bl_number:
+        fields["bl_number"] = bl_number
+
+    importer_name = _first_match(
+        r"(?:Consignee|Buyer\s*/\s*Importer)\s+(.+?)(?:\s+Vessel|\s+Date|\s+PO\s+No\.|\n)",
+        text,
+    )
+    if importer_name:
+        fields["importer_name"] = importer_name
+
+    exporter_name = _first_match(
+        r"(?:Shipper|Seller\s*/\s*Exporter|Exporter)\s+(.+?)(?:\s+B/L\s+No\.|\s+Invoice\s+No\.|\s+Packing\s+List\s+No\.|\n)",
+        text,
+    )
+    if exporter_name:
+        fields["exporter_name"] = exporter_name
+
+    containers = _extract_container_numbers(text)
+    if containers:
+        fields["container_numbers"] = containers
+
+    hs_code = _find_hs_code(text)
+    if hs_code:
+        fields["hs_code"] = hs_code
+
+    if doc_type == "bill_of_lading":
+        for field, pattern in {
+            "vessel_name": r"\bVessel\s+(.+?)(?:\n|$)",
+            "voyage_number": r"\bVoyage\s+No\.\s*([A-Z0-9\-]+)",
+            "port_of_loading": r"\bPort of Loading\s+(.+?)\s+Port of Discharge",
+            "port_of_discharge": r"\bPort of Discharge\s+([\s\S]+?)(?:Place of Delivery|Freight Terms)",
+            "freight_terms": r"\bFreight Terms\s+(.+?)(?:\n|Incoterm)",
+            "incoterms": r"\bIncoterm\s+([A-Z]{3})\b",
+            "bl_date": r"(?:Shipped on Board Date|Place and Date of Issue\s+\S+,\s*)\s*([0-9]{1,2}-[A-Z]{3}-[0-9]{4})",
+        }.items():
+            value = _first_match(pattern, text)
+            if value:
+                fields[field] = value
+        total_match = re.search(r"\bTOTAL:.*?(\d[\d,]*)\s+(?:CTNS|CARTONS|PACKAGES).*?([0-9,.]+)\s*KGS", text, re.IGNORECASE | re.DOTALL)
+        if total_match:
+            fields["total_packages"] = _to_int(total_match.group(1))
+            fields["gross_weight"] = _to_float(total_match.group(2))
+
+    elif doc_type == "packing_list":
+        date = _first_match(r"\bDate\s+([0-9]{1,2}-[A-Z]{3}-[0-9]{4})", text)
+        if date:
+            fields["bl_date"] = date
+        total_match = re.search(r"\bTOTAL\s*\(.+?\)\s+(\d[\d,]*)\s+(?:CARTONS|CTNS|PACKAGES).*?([0-9,.]+)\s+([0-9,.]+)\s+[0-9,.]+", text, re.IGNORECASE | re.DOTALL)
+        if total_match:
+            fields["total_packages"] = _to_int(total_match.group(1))
+            fields["gross_weight"] = _to_float(total_match.group(3))
+
+    elif doc_type == "invoice":
+        for field, pattern in {
+            "bl_date": r"\bInvoice Date\s+([0-9]{1,2}-[A-Z]{3}-[0-9]{4})",
+            "importer_nib": r"\bImporter NIB\s+([0-9]{10,20})",
+            "importer_npwp": r"\bImporter NPWP\s+([0-9.\-]+)",
+            "currency": r"\bCurrency\s+([A-Z]{3})\b",
+            "incoterms": r"\bIncoterm\s+([A-Z]{3})\b",
+            "port_of_discharge": r"\bPort of Discharge\s+([\s\S]+?)(?:Item Description)",
+        }.items():
+            value = _first_match(pattern, text)
+            if value:
+                fields[field] = value
+        for field, pattern in {
+            "fob_value": r"\bFOB Value\s+[A-Z]{3}\s+([0-9,.]+)",
+            "freight_value": r"\bFreight\s+[A-Z]{3}\s+([0-9,.]+)",
+            "insurance_value": r"\bInsurance\s+[A-Z]{3}\s+([0-9,.]+)",
+            "cif_value": r"\bCIF Value\s+[A-Z]{3}\s+([0-9,.]+)",
+        }.items():
+            value = _to_float(_first_match(pattern, text))
+            if value is not None:
+                fields[field] = value
+
+    return {key: value for key, value in fields.items() if value not in (None, "")}
+
+
 def _estimate_field_confidences(extracted: dict, doc: dict) -> dict[str, float]:
     raw_text = doc.get("raw_text") or ""
     candidates = doc.get("ocr_candidates") or {}
@@ -206,6 +341,32 @@ async def llm_extraction_node(state: ExtractionGraphState) -> dict:
             continue
 
         # ── Initialize LLM once ─────────────────────────────────────────────
+        if settings.DIGITAL_PDF_SKIP_LLM and doc.get("document_mode") == "digital_pdf_text":
+            extracted = _extract_digital_text_fields(doc)
+            if extracted:
+                candidates = dict(doc.get("ocr_candidates") or {})
+                field_confidences = _estimate_field_confidences(extracted, doc)
+                candidates["digital_text_parser"] = {
+                    "fields": extracted,
+                    "confidence": round(sum(field_confidences.values()) / len(field_confidences), 4),
+                    "field_confidences": field_confidences,
+                }
+                updated_docs.append({
+                    **doc,
+                    "extracted_data": extracted,
+                    "ocr_method": "digital_text_parser",
+                    "ocr_candidates": candidates,
+                    "field_confidences": field_confidences,
+                })
+                combined_data.update(extracted)
+                log.info(
+                    "Digital PDF text parser used",
+                    batch_id=state["batch_id"],
+                    doc_id=doc.get("doc_id"),
+                    field_count=len(extracted),
+                )
+                continue
+
         if llm is None:
             if settings.DETERMINISTIC_E2E:
                 if DeterministicLLM is None:
@@ -367,7 +528,10 @@ async def llm_extraction_node(state: ExtractionGraphState) -> dict:
 
             # ── Invoke LLM ──────────────────────────────────────────────────
             if use_manual_json:
-                response = await llm.ainvoke(messages)
+                response = await asyncio.wait_for(
+                    llm.ainvoke(messages),
+                    timeout=settings.LLM_EXTRACTION_TIMEOUT_SECONDS,
+                )
                 text_response = response.content if hasattr(response, "content") else str(response)
                 raw_extracted = _parse_json_from_text(text_response)
                 # Coerce through Pydantic for type safety
@@ -377,7 +541,10 @@ async def llm_extraction_node(state: ExtractionGraphState) -> dict:
                 except Exception:
                     extracted = {k: v for k, v in raw_extracted.items() if v is not None}
             else:
-                result = await structured_llm.ainvoke(messages)
+                result = await asyncio.wait_for(
+                    structured_llm.ainvoke(messages),
+                    timeout=settings.LLM_EXTRACTION_TIMEOUT_SECONDS,
+                )
                 raw_result = result.model_dump(exclude_none=True) if hasattr(result, "model_dump") else result
                 if asyncio.iscoroutine(raw_result):
                     raw_result = await raw_result

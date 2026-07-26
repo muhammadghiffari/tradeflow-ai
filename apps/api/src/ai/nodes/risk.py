@@ -53,6 +53,12 @@ def _compute_doc_quality(documents: list[dict]) -> float:
     return sum(scores) / len(scores) if scores else 0.0
 
 
+def _compute_hs_confidence(combined_data: dict, field_confidences: dict) -> float:
+    if field_confidences.get("hs_code") is not None:
+        return max(0.0, min(1.0, float(field_confidences["hs_code"])))
+    return 0.85 if combined_data.get("hs_code") else 0.0
+
+
 def _crs_to_grade(score: float) -> str:
     if score >= 90:
         return "A"
@@ -97,13 +103,14 @@ async def risk_assessment_node(state: ExtractionGraphState) -> dict:
     combined_data = state.get("combined_data", {})
     validation_results = state.get("validation_results", [])
     documents = state.get("documents", [])
+    field_confidences = state.get("field_confidences", {})
 
     # ── Pillar scores ──────────────────────────────────────────────
     p_quality     = _compute_doc_quality(documents)
     p_completeness = _compute_completeness(combined_data)
     p_consistency  = _compute_consistency(validation_results)
     p_historical   = 0.80  # Stub — fetched from company submission history
-    p_hs_conf      = 0.85  # Stub — from HS recommender confidence
+    p_hs_conf      = _compute_hs_confidence(combined_data, field_confidences)
 
     # ── Weighted CRS ───────────────────────────────────────────────
     crs_raw = (
@@ -118,12 +125,9 @@ async def risk_assessment_node(state: ExtractionGraphState) -> dict:
     critical_failures = sum(1 for r in validation_results if r.get("severity") == "CRITICAL_FAIL")
     warnings = sum(1 for r in validation_results if r.get("severity") == "WARNING")
 
-    if critical_failures:
-        crs_score = min(crs_score, 55.0)
-        crs_grade = _crs_to_grade(crs_score)
-    elif warnings:
-        crs_score = min(crs_score, 75.0)
-        crs_grade = _crs_to_grade(crs_score)
+    validation_penalty = (critical_failures * 10.0) + (warnings * 4.0)
+    crs_score = round(max(0.0, crs_score - validation_penalty), 2)
+    crs_grade = _crs_to_grade(crs_score)
 
     features = {
         "doc_quality_score": p_quality,
@@ -134,12 +138,13 @@ async def risk_assessment_node(state: ExtractionGraphState) -> dict:
         "cif_value_usd": float(combined_data.get("cif_value") or 0.0),
         "package_count": float(combined_data.get("total_packages") or 0.0),
         "gross_weight_kg": float(combined_data.get("gross_weight") or 0.0),
+        "critical_validation_failures": critical_failures,
+        "warning_validation_failures": warnings,
+        "validation_penalty": validation_penalty,
     }
     rejection_prob = round(rejection_predictor.predict_proba(features), 4)
-    if critical_failures:
-        rejection_prob = max(rejection_prob, 0.65)
-    elif warnings:
-        rejection_prob = max(rejection_prob, 0.30)
+    validation_risk = (critical_failures * 0.18) + (warnings * 0.06)
+    rejection_prob = round(max(rejection_prob, min(0.95, validation_risk)), 4)
     risk_level = _probability_to_risk(rejection_prob)
 
     # PRD §13 Invariant: CRS < 70 → must NOT auto-submit

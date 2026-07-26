@@ -173,8 +173,10 @@ services:
       # Force CPU-only — GPU reserved for Surya + Ollama
       CUDA_VISIBLE_DEVICES: ""
       FLAGS_use_gpu: "0"
+      PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
     volumes:
       - model_cache:/data/models
+      - model_cache:/root/.paddlex
       - ./apps/paddleocr-svc/serve.py:/app/serve.py:ro
     ports:
       - "8011:8002"
@@ -350,6 +352,7 @@ services:
     volumes:
       - ./apps/web:/app/apps/web:delegated
       - web-node-modules:/app/apps/web/node_modules
+    command: sh -lc "./node_modules/.bin/next dev --webpack -H 0.0.0.0 -p 3000"
     ports:
       - "3000:3000"
 

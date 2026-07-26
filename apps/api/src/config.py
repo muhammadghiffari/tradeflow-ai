@@ -107,6 +107,8 @@ class Settings(BaseSettings):
     # ── AI / LLM ─────────────────────────────────────────────────────────────
     USE_LOCAL_LLM: bool = False
     LOCAL_LLM_MODEL: str = "qwen2.5:7b"
+    DIGITAL_PDF_SKIP_LLM: bool = True
+    LLM_EXTRACTION_TIMEOUT_SECONDS: int = 25
     OLLAMA_BASE_URL: str = "http://host.docker.internal:11434/v1"
     GEMINI_API_KEY: SecretStr = Field(..., description="Google Gemini API key")
     GEMINI_MODEL_PRIMARY: str = "gemini-3.5-flash"
